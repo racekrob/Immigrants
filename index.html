@@ -1,0 +1,1931 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Immigrants">
+<title>Immigrants USA</title>
+<meta name="theme-color" content="#14203b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>/* Layout: celoobrazovková aplikace – horní pás hráčů, mapa s posunem/zoomem, dolní „lístek" s akcemi. */
+[hidden] { display: none !important; }
+:root {
+  --ink: #14203b;
+  --ink-2: #22345e;
+  --ink-3: #3a4d7a;
+  --paper: #f1e9d6;
+  --paper-2: #e4d8bd;
+  --paper-3: #d3c39f;
+  --stamp: #c62420;
+  --stamp-2: #9e1714;
+  --gold: #b88a2c;
+  --text: #1a2036;
+  --muted: #5f6070;
+  --ok: #2c7a3f;
+  --sea: #b7dde6;
+  --f-display: 'Alfa Slab One', 'Rockwell', 'Georgia', serif;
+  --f-ui: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --f-body: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ink); color: var(--text);
+  font-family: var(--f-body); font-size: 15px; overflow: hidden;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+#app { position: fixed; inset: 0; display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ---------- horní pás ---------- */
+#topbar { flex: none; display: flex; align-items: stretch; gap: 6px; background: var(--ink);
+  padding: 6px max(10px, env(safe-area-inset-right, 0px)) 6px max(10px, env(safe-area-inset-left, 0px));
+  border-bottom: 3px solid var(--stamp); }
+#chips { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+#chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border-radius: 6px;
+  background: var(--ink-2); color: #e9e3d2; border: 1px solid transparent; font-family: var(--f-ui); line-height: 1.05; }
+.chip.cur { background: var(--paper); color: var(--text); border-color: var(--gold); }
+.chip.dead { opacity: .4; text-decoration: line-through; }
+.chip .nm { font-weight: 600; font-size: 14px; max-width: 86px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .cs { font-size: 13px; opacity: .85; }
+.chip .meta { display: flex; flex-direction: column; }
+.chip.debt .cs { color: var(--stamp); opacity: 1; font-weight: 700; }
+#lastroll { position: absolute; top: 9px; left: 10px; z-index: 4; display: flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 9px;
+  background: var(--paper); border: 2px solid var(--ink); border-top: 4px solid var(--pc, var(--ink)); box-shadow: 0 4px 12px rgba(0,0,0,.28);
+  transition: left .35s ease; pointer-events: none; }
+#lastroll::before { content: ""; position: absolute; top: -12px; left: var(--ax, 22px); border: 7px solid transparent; border-bottom-color: var(--pc, var(--ink)); transform: translateX(-50%); transition: left .35s ease; }
+#lastroll .die { width: 30px; height: 30px; border-radius: 6px; padding: 4px; border-width: 1.5px; box-shadow: 0 1px 0 var(--ink); }
+#lastroll .die i { width: 5px; height: 5px; }
+#lastroll .sum { font-family: var(--f-ui); font-weight: 700; color: var(--ink); font-size: 19px; margin-left: 2px; }
+#lastroll .who { font-family: var(--f-ui); font-size: 13px; color: var(--muted); margin-right: 2px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconbtn { flex: none; width: 40px; border-radius: 6px; border: 0; background: var(--ink-2); color: #efe8d6; display: grid; place-items: center; }
+.iconbtn svg { width: 22px; height: 22px; }
+
+/* hvězdná značka hráče */
+.star-badge { width: 26px; height: 26px; flex: none; }
+
+/* ---------- mapa ---------- */
+#mapwrap { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--sea); touch-action: none; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+#world img { display: block; max-width: none; pointer-events: none; -webkit-user-drag: none; }
+#overlay { position: absolute; left: 0; top: 0; overflow: visible; }
+.mapctl { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.mapctl button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid rgba(20,32,59,.25); background: rgba(241,233,214,.94); color: var(--ink); font-size: 20px; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,.18); display: grid; place-items: center; }
+.mapctl button svg { width: 20px; height: 20px; }
+#steps { position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); top: 66px; background: var(--ink); color: var(--paper); padding: 6px 10px; border-radius: 8px; font-family: var(--f-ui); font-size: 15px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+#steps b { font-size: 22px; color: #ffd66b; margin-right: 4px; }
+
+.opt-ring { fill: rgba(255, 214, 107, .35); stroke: #ffb800; animation: pulse 1.1s ease-in-out infinite; cursor: pointer; }
+.opt-txt { font-family: var(--f-ui); font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: #fff; pointer-events: none; }
+@keyframes pulse { 50% { fill: rgba(255, 214, 107, .7); } }
+.trail { fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+.pawn { transition: transform .16s ease-out; }
+.mk { cursor: pointer; }
+
+/* ---------- dolní panel ---------- */
+#panel { flex: none; background: var(--paper); border-top: 3px solid var(--ink); position: relative;
+  padding: 10px max(14px, env(safe-area-inset-right, 0px)) 12px max(14px, env(safe-area-inset-left, 0px));
+  max-height: 46vh; overflow-y: auto; box-shadow: 0 -6px 18px rgba(0,0,0,.25); }
+#panel::before { content: ""; position: absolute; left: 0; right: 0; top: -9px; height: 6px;
+  background: radial-gradient(circle at 6px 6px, var(--paper) 3px, transparent 3.5px) 0 0 / 12px 6px repeat-x; }
+.ph { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ph h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 21px; letter-spacing: .3px; color: var(--ink); line-height: 1.1; text-wrap: balance; }
+.ph .sub { font-family: var(--f-ui); font-size: 14px; color: var(--muted); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > * { flex: 1 1 auto; }
+.btn { border: 0; border-radius: 8px; padding: 11px 14px; font-family: var(--f-ui); font-size: 17px; font-weight: 600; letter-spacing: .3px;
+  background: var(--ink); color: var(--paper); min-height: 46px; }
+.btn.red { background: var(--stamp); color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+.btn.soft { background: var(--paper-2); color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.big { font-size: 21px; min-height: 56px; }
+.btn small { display: block; font-size: 12.5px; font-weight: 500; opacity: .85; letter-spacing: 0; }
+.dicesel { display: flex; gap: 6px; margin: 2px 0 10px; }
+.dicesel button { flex: 1; border: 2px solid var(--paper-3); background: var(--paper); border-radius: 8px; padding: 5px 2px; font-family: var(--f-ui); line-height: 1.1; }
+.dicesel button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.dicesel b { font-size: 17px; display: block; }
+.dicesel span { font-size: 12px; opacity: .8; }
+
+.wallet { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.wallet .amt { font-family: var(--f-display); font-size: 26px; color: var(--ink); }
+.bills { position: relative; height: 40px; flex: 1; min-width: 0; }
+.bills img { position: absolute; top: 0; height: 38px; width: auto; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+
+.dice { display: flex; gap: 8px; justify-content: center; margin: 4px 0 10px; }
+.die { width: 46px; height: 46px; border-radius: 9px; background: #fff; border: 2px solid var(--ink); display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 6px; box-sizing: border-box; box-shadow: 0 2px 0 var(--ink); }
+.die i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); place-self: center; visibility: hidden; }
+.die i.on { visibility: visible; }
+.die.roll { animation: shake .5s ease-in-out; }
+@keyframes shake { 20% { transform: rotate(-14deg) translateY(-4px); } 50% { transform: rotate(12deg); } 80% { transform: rotate(-5deg); } }
+
+.optlist { display: flex; flex-direction: column; gap: 6px; }
+.optlist button { display: flex; align-items: center; gap: 10px; text-align: left; border: 2px solid var(--paper-3); background: #fbf7ec; border-radius: 8px; padding: 8px 10px; font-family: var(--f-ui); font-size: 16px; }
+.optlist button .k { width: 26px; height: 26px; border-radius: 50%; background: #ffd66b; border: 2px solid #c08a00; display: grid; place-items: center; font-weight: 700; flex: none; }
+.optlist button .cost { margin-left: auto; color: var(--stamp); font-weight: 700; white-space: nowrap; }
+.optlist button .cost.free { color: var(--ok); }
+
+.cardrow { display: flex; gap: 12px; align-items: flex-start; }
+.cardrow img.card { width: 96px; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,.3); flex: none; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--f-ui); font-size: 16px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-weight: 600; text-align: right; }
+
+.thinking { display: flex; align-items: center; gap: 10px; font-family: var(--f-ui); font-size: 17px; }
+.spinner { width: 22px; height: 22px; border: 3px solid var(--paper-3); border-top-color: var(--stamp); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- listy (sheety) ---------- */
+.sheet-bg { position: fixed; inset: 0; background: rgba(10,16,32,.55); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 640px; max-height: 88%; background: var(--paper); border-radius: 14px 14px 0 0; display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 0px); animation: up .22s ease-out; }
+@keyframes up { from { transform: translateY(40px); opacity: .4; } }
+.sheet header { display: flex; align-items: center; gap: 10px; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 2px solid var(--paper-3); }
+.sheet header h3 { margin: 0; flex: 1; font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--ink); }
+.sheet .body { overflow-y: auto; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 18px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 10px; }
+.sheet .close { border: 0; background: var(--paper-2); border-radius: 50%; width: 36px; height: 36px; font-size: 20px; }
+.tabs { display: flex; gap: 6px; }
+.tabs button { flex: 1; border: 0; border-radius: 8px; padding: 8px; font-family: var(--f-ui); font-size: 16px; font-weight: 600; background: var(--paper-2); color: var(--ink); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+
+.item { display: flex; gap: 12px; align-items: center; background: #fbf7ec; border: 1px solid var(--paper-3); border-radius: 10px; padding: 8px; }
+.item img { width: 86px; border-radius: 5px; flex: none; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.item img.tall { width: 54px; }
+.item .t { flex: 1; min-width: 0; }
+.item .t b { font-family: var(--f-ui); font-size: 17px; display: block; color: var(--ink); }
+.item .t p { margin: 2px 0 6px; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.item .t .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.item .t .acts button { border: 0; border-radius: 6px; padding: 6px 10px; background: var(--ink); color: var(--paper); font-family: var(--f-ui); font-size: 14.5px; font-weight: 600; }
+.item .t .acts button.alt { background: var(--paper-2); color: var(--ink); }
+.item .t .acts button:disabled { opacity: .4; }
+.tag { display: inline-block; font-family: var(--f-ui); font-size: 13px; padding: 1px 7px; border-radius: 10px; background: var(--paper-2); color: var(--ink); margin-right: 4px; }
+.tag.red { background: var(--stamp); color: #fff; }
+.err { color: var(--stamp); font-size: 13px; font-family: var(--f-ui); }
+.note { font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.sec { font-family: var(--f-ui); text-transform: uppercase; letter-spacing: 1.2px; font-size: 13px; color: var(--muted); margin: 6px 0 -2px; }
+
+/* ---------- toasty ---------- */
+#toasts { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 112px); transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: min(92vw, 460px); }
+.toast { background: rgba(20,32,59,.94); color: var(--paper); padding: 8px 12px; border-radius: 8px; font-family: var(--f-ui); font-size: 15.5px; box-shadow: 0 4px 14px rgba(0,0,0,.3); animation: tin .2s ease-out; max-width: 100%; }
+.toast.minus { border-left: 5px solid var(--stamp); }
+.toast.plus { border-left: 5px solid #5cc57a; }
+@keyframes tin { from { opacity: 0; transform: translateY(-8px); } }
+.flybill { position: fixed; height: 30px; width: auto; z-index: 70; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,.4); border-radius: 2px; }
+
+/* ---------- úvodní obrazovka ---------- */
+#setup { position: fixed; inset: 0; overflow-y: auto; background: var(--ink); z-index: 40;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
+.hero { max-width: 560px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16 / 9; max-width: 100%;
+  background: url('img/board.jpg') 88% 2% / 520% auto no-repeat; border: 3px solid var(--paper); }
+.hero::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -60px 50px -20px rgba(20,32,59,.65); }
+.hero-wrap { max-width: 560px; margin: 0 auto; }
+.setup-card { max-width: 560px; margin: 0 auto; background: var(--paper); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.setup-card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 26px; color: var(--ink); line-height: 1.1; text-wrap: balance; }
+.setup-card .lead { margin: -4px 0 0; color: var(--muted); font-size: 14.5px; }
+.prow { display: flex; align-items: center; gap: 8px; }
+.prow input { flex: 1; min-width: 0; border: 2px solid var(--paper-3); border-radius: 8px; padding: 9px 10px; font: 16px var(--f-body); background: #fffdf7; color: var(--text); }
+.seg { display: flex; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: transparent; padding: 8px 10px; font-family: var(--f-ui); font-size: 15px; font-weight: 600; color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.rm { border: 0; background: transparent; font-size: 22px; color: var(--muted); width: 32px; }
+select { border: 2px solid var(--paper-3); border-radius: 8px; padding: 9px; font: 16px var(--f-body); background: #fffdf7; color: var(--text); }
+label.fl { display: flex; flex-direction: column; gap: 4px; font-family: var(--f-ui); font-size: 15px; color: var(--muted); }
+
+/* výsledná obrazovka */
+.winner { text-align: center; padding: 10px 0; }
+.winner h2 { font-family: var(--f-display); font-weight: 400; font-size: 30px; margin: 6px 0; color: var(--ink); }
+
+.rules h4 { font-family: var(--f-ui); font-size: 17px; margin: 8px 0 2px; color: var(--ink); }
+.rules p, .rules li { font-size: 14.5px; line-height: 1.45; }
+.rules ul { padding-left: 18px; margin: 4px 0; }
+
+/* plovoucí panel vpravo dole: počítač a telefon na šířku */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 600px) {
+  #panel { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); bottom: max(10px, env(safe-area-inset-bottom, 0px)); width: 380px; max-width: 46vw; max-height: 70vh; border: 3px solid var(--ink); border-radius: 12px; z-index: 5; }
+  #panel::before { display: none; }
+  #panel .ptoggle { display: grid; }
+  #panel.mini { width: auto; max-width: 60vw; padding-top: 6px; padding-bottom: 6px; }
+  #panel.mini > :not(.ph):not(.ptoggle) { display: none !important; }
+  #panel.mini .ph { margin: 0; padding-right: 40px; }
+  #panel.mini .ph .sub { display: none; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  #topbar { padding-top: 3px; padding-bottom: 3px; }
+  .chip { padding: 2px 8px 2px 4px; }
+  .chip .star-badge, #topbar .star-badge { width: 20px; height: 20px; }
+  .iconbtn { width: 36px; }
+  #panel { width: 330px; max-height: calc(100% - 20px); padding: 8px 12px 10px; }
+  .ph { margin-bottom: 6px; padding-right: 40px; }
+  .ph h2 { font-size: 18px; }
+  .ph .star-badge { width: 26px; height: 26px; }
+  .wallet { margin-bottom: 6px; }
+  .wallet .amt { font-size: 21px; }
+  .bills { height: 30px; } .bills img { height: 28px; }
+  .dicesel { margin: 0 0 6px; } .dicesel button { padding: 3px 2px; } .dicesel b { font-size: 15px; }
+  .btn { min-height: 40px; padding: 8px 10px; font-size: 16px; }
+  .btn.big { min-height: 46px; font-size: 18px; }
+  .optlist button { padding: 6px 8px; font-size: 15px; }
+  .cardrow img.card { width: 70px; }
+  .die { width: 38px; height: 38px; }
+  .mapctl { top: 8px; flex-direction: row; }
+  .mapctl button { width: 36px; height: 36px; }
+  #steps { top: 62px; }
+  #panel { max-height: calc(100% - 64px); }
+}
+.ptoggle { display: none; position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--paper-2); color: var(--ink); place-items: center; font-size: 20px; font-weight: 700; line-height: 1; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+.colorbtn { border: 2px solid var(--paper-3); background: #fffdf7; border-radius: 50%; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; flex: none; }
+.colorgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.colorpick { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 2px solid var(--paper-3); background: #fbf7ec; border-radius: 10px; padding: 10px 4px; font-family: var(--f-ui); }
+.colorpick b { font-size: 16px; color: var(--ink); }
+.colorpick small { font-size: 13px; color: var(--muted); }
+.colorpick[aria-pressed="true"] { border-color: var(--ink); background: var(--paper-2); }
+</style>
+</head>
+<body>
+<div id="setup" hidden></div>
+<div id="app" hidden>
+  <div id="topbar">
+    <div id="chips" aria-label="Hráči"></div>
+    <button class="iconbtn" id="menuBtn" aria-label="Nabídka"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+  <div id="mapwrap">
+    <div id="world"><img src="img/board.jpg" width="3925" height="2426" alt="Herní deska – mapa USA s trasami"><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div id="lastroll" hidden aria-label="Poslední hod"></div>
+    <div id="steps" hidden></div>
+    <div class="mapctl">
+      <button id="zin" aria-label="Přiblížit">+</button>
+      <button id="zout" aria-label="Oddálit">−</button>
+      <button id="zfit" aria-label="Celá mapa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button id="zme" aria-label="Ukázat figurku na tahu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    </div>
+  </div>
+  <div id="panel" aria-live="polite"></div>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<script>(typeof window!=="undefined"?window:globalThis).GAME_DATA={"nodes":[{"x":198.2,"y":703.7,"t":"road","s":"California"},{"x":191.5,"y":636.7,"t":"road","s":"California"},{"x":199.1,"y":516.5,"t":"road","s":"Oregon"},{"x":220.8,"y":395.1,"t":"road","s":"Oregon"},{"x":561.4,"y":491.4,"t":"road","s":"Idaho"},{"x":570.9,"y":198.2,"t":"road","s":"Idaho"},{"x":641.4,"y":232.8,"t":"road","s":"Montana"},{"x":729.5,"y":283.4,"t":"road","s":"Montana"},{"x":820.3,"y":311.9,"t":"road","s":"Montana"},{"x":926.0,"y":340.8,"t":"road","s":"Montana"},{"x":1025.6,"y":347.1,"t":"road","s":"Montana"},{"x":1130.6,"y":338.4,"t":"road","s":"North Dakota"},{"x":1206.9,"y":342.0,"t":"road","s":"North Dakota"},{"x":1265.5,"y":373.4,"t":"road","s":"North Dakota"},{"x":1284.1,"y":446.2,"t":"road","s":"South Dakota"},{"x":1295.0,"y":528.4,"t":"road","s":"South Dakota"},{"x":1382.0,"y":579.2,"t":"road","s":"South Dakota"},{"x":1449.0,"y":599.4,"t":"road","s":"South Dakota"},{"x":1456.4,"y":673.5,"t":"road","s":"Nebraska"},{"x":1447.8,"y":731.8,"t":"road","s":"Nebraska"},{"x":1486.1,"y":784.8,"t":"road","s":"Nebraska"},{"x":1180.2,"y":582.4,"t":"road","s":"South Dakota"},{"x":1374.9,"y":383.0,"t":"road","s":"North Dakota"},{"x":1469.9,"y":395.7,"t":"road","s":"Minnesota"},{"x":529.0,"y":576.5,"t":"road","s":"Idaho"},{"x":601.6,"y":567.3,"t":"road","s":"Idaho"},{"x":692.0,"y":600.4,"t":"road","s":"Idaho"},{"x":263.4,"y":317.0,"t":"road","s":"Oregon"},{"x":320.0,"y":174.6,"t":"road","s":"Washington"},{"x":401.1,"y":192.9,"t":"road","s":"Washington"},{"x":503.6,"y":201.7,"t":"road","s":"Washington"},{"x":275.0,"y":231.9,"t":"road","s":"Washington"},{"x":513.4,"y":665.2,"t":"road","s":"Nevada"},{"x":510.2,"y":745.9,"t":"road","s":"Nevada"},{"x":432.9,"y":733.1,"t":"road","s":"Nevada"},{"x":364.3,"y":738.8,"t":"road","s":"Nevada"},{"x":295.7,"y":740.0,"t":"road","s":"Nevada"},{"x":175.1,"y":937.4,"t":"road","s":"California"},{"x":161.0,"y":844.4,"t":"road","s":"California"},{"x":209.4,"y":1012.3,"t":"road","s":"California"},{"x":241.3,"y":1060.2,"t":"road","s":"California"},{"x":309.3,"y":1097.5,"t":"road","s":"California"},{"x":380.8,"y":1121.1,"t":"road","s":"California"},{"x":431.9,"y":1057.5,"t":"road","s":"California"},{"x":458.5,"y":1154.5,"t":"road","s":"California"},{"x":611.6,"y":754.5,"t":"road","s":"Utah"},{"x":699.0,"y":753.7,"t":"road","s":"Utah"},{"x":722.0,"y":709.8,"t":"road","s":"Utah"},{"x":635.5,"y":1170.5,"t":"road","s":"Arizona"},{"x":711.9,"y":1201.5,"t":"road","s":"Arizona"},{"x":824.0,"y":1213.9,"t":"road","s":"New Mexico"},{"x":917.8,"y":1199.8,"t":"road","s":"New Mexico"},{"x":988.4,"y":1114.1,"t":"road","s":"New Mexico"},{"x":753.9,"y":788.0,"t":"road","s":"Utah"},{"x":920.8,"y":850.5,"t":"road","s":"Colorado"},{"x":1053.4,"y":762.1,"t":"road","s":"Colorado"},{"x":1033.3,"y":706.1,"t":"road","s":"Wyoming"},{"x":969.8,"y":671.2,"t":"road","s":"Wyoming"},{"x":916.8,"y":650.9,"t":"road","s":"Wyoming"},{"x":854.0,"y":641.6,"t":"road","s":"Wyoming"},{"x":787.0,"y":625.8,"t":"road","s":"Wyoming"},{"x":1136.8,"y":703.6,"t":"road","s":"Nebraska"},{"x":1030.6,"y":837.4,"t":"road","s":"Colorado"},{"x":1027.7,"y":887.8,"t":"road","s":"Colorado"},{"x":1074.4,"y":932.3,"t":"road","s":"Colorado"},{"x":1158.7,"y":953.0,"t":"road","s":"Colorado"},{"x":1249.3,"y":960.7,"t":"road","s":"Kansas"},{"x":1330.2,"y":918.6,"t":"road","s":"Kansas"},{"x":1410.9,"y":878.9,"t":"road","s":"Kansas"},{"x":1491.9,"y":861.6,"t":"road","s":"Kansas"},{"x":1557.0,"y":891.5,"t":"road","s":"Kansas"},{"x":1623.7,"y":924.5,"t":"road","s":"Missouri"},{"x":1712.6,"y":901.1,"t":"road","s":"Missouri"},{"x":1690.0,"y":812.8,"t":"road","s":"Missouri"},{"x":1685.3,"y":729.8,"t":"road","s":"Iowa"},{"x":1659.9,"y":664.0,"t":"road","s":"Iowa"},{"x":1642.7,"y":590.1,"t":"road","s":"Iowa"},{"x":1622.3,"y":543.6,"t":"road","s":"Minnesota"},{"x":1619.9,"y":468.0,"t":"road","s":"Minnesota"},{"x":1713.6,"y":480.8,"t":"road","s":"Wisconsin"},{"x":1774.9,"y":543.3,"t":"road","s":"Wisconsin"},{"x":1849.5,"y":589.7,"t":"road","s":"Wisconsin"},{"x":1876.7,"y":643.8,"t":"road","s":"Illinois"},{"x":1934.5,"y":673.0,"t":"road","s":"Indiana"},{"x":2007.8,"y":660.8,"t":"road","s":"Indiana"},{"x":1998.4,"y":583.5,"t":"road","s":"Michigan"},{"x":2042.2,"y":574.9,"t":"road","s":"Michigan"},{"x":2103.4,"y":591.6,"t":"road","s":"Michigan"},{"x":2114.5,"y":640.1,"t":"road","s":"Ohio"},{"x":2187.1,"y":640.6,"t":"road","s":"Ohio"},{"x":2243.8,"y":670.5,"t":"road","s":"Ohio"},{"x":2298.8,"y":667.6,"t":"road","s":"Pennsylvania"},{"x":2366.2,"y":640.3,"t":"road","s":"Pennsylvania"},{"x":2429.2,"y":634.0,"t":"road","s":"Pennsylvania"},{"x":2472.5,"y":613.3,"t":"road","s":"Pennsylvania"},{"x":2570.3,"y":631.1,"t":"road","s":"New Jersey"},{"x":2560.3,"y":673.6,"t":"road","s":"New Jersey"},{"x":2546.7,"y":722.7,"t":"road","s":"Delaware"},{"x":2448.1,"y":794.3,"t":"road","s":"Virginia"},{"x":2437.8,"y":850.7,"t":"road","s":"Virginia"},{"x":2381.8,"y":868.5,"t":"road","s":"Virginia"},{"x":2280.8,"y":917.1,"t":"road","s":"Virginia"},{"x":2240.0,"y":833.5,"t":"road","s":"West Virginia"},{"x":2269.8,"y":772.8,"t":"road","s":"West Virginia"},{"x":2319.3,"y":736.1,"t":"road","s":"West Virginia"},{"x":2447.6,"y":917.9,"t":"road","s":"North Carolina"},{"x":2405.4,"y":969.8,"t":"road","s":"North Carolina"},{"x":2377.9,"y":1020.7,"t":"road","s":"North Carolina"},{"x":2351.1,"y":1076.5,"t":"road","s":"South Carolina"},{"x":2303.0,"y":1119.3,"t":"road","s":"South Carolina"},{"x":2235.0,"y":1143.0,"t":"road","s":"Georgia"},{"x":2157.8,"y":1166.0,"t":"road","s":"Georgia"},{"x":2068.1,"y":1258.0,"t":"road","s":"Alabama"},{"x":1970.1,"y":1278.8,"t":"road","s":"Alabama"},{"x":1916.7,"y":1292.7,"t":"road","s":"Mississippi"},{"x":1834.5,"y":1281.7,"t":"road","s":"Mississippi"},{"x":1759.4,"y":1314.8,"t":"road","s":"Louisiana"},{"x":1676.5,"y":1323.0,"t":"road","s":"Louisiana"},{"x":1564.3,"y":1319.6,"t":"road","s":"Texas"},{"x":1500.1,"y":1299.5,"t":"road","s":"Texas"},{"x":1434.7,"y":1349.5,"t":"road","s":"Texas"},{"x":1436.0,"y":1438.8,"t":"road","s":"Texas"},{"x":1575.9,"y":1492.1,"t":"road","s":"Texas"},{"x":1441.8,"y":1272.7,"t":"road","s":"Texas"},{"x":1423.3,"y":1226.5,"t":"road","s":"Texas"},{"x":1414.0,"y":1169.8,"t":"road","s":"Oklahoma"},{"x":1445.0,"y":1108.0,"t":"road","s":"Oklahoma"},{"x":1466.5,"y":1048.5,"t":"road","s":"Oklahoma"},{"x":2029.4,"y":1182.7,"t":"road","s":"Alabama"},{"x":2004.7,"y":1111.4,"t":"road","s":"Alabama"},{"x":1998.2,"y":1028.1,"t":"road","s":"Tennessee"},{"x":2083.3,"y":1017.3,"t":"road","s":"Tennessee"},{"x":2174.4,"y":985.9,"t":"road","s":"Tennessee"},{"x":2181.7,"y":876.9,"t":"road","s":"Kentucky"},{"x":2085.1,"y":887.4,"t":"road","s":"Kentucky"},{"x":1927.5,"y":1050.9,"t":"road","s":"Tennessee"},{"x":1847.3,"y":1091.7,"t":"road","s":"Tennessee"},{"x":1726.3,"y":1001.2,"t":"road","s":"Missouri"},{"x":1753.6,"y":1086.8,"t":"road","s":"Arkansas"},{"x":1742.1,"y":1158.9,"t":"road","s":"Arkansas"},{"x":1738.0,"y":1234.6,"t":"road","s":"Arkansas"},{"x":2193.9,"y":1224.6,"t":"road","s":"Georgia"},{"x":2275.2,"y":1275.4,"t":"road","s":"Georgia"},{"x":2334.8,"y":1355.6,"t":"road","s":"Florida"},{"x":2381.0,"y":1426.7,"t":"road","s":"Florida"},{"x":2388.7,"y":1492.1,"t":"road","s":"Florida"},{"x":2314.8,"y":1498.2,"t":"road","s":"Florida"},{"x":2470.3,"y":1574.8,"t":"road","s":"Florida"},{"x":2488.0,"y":704.2,"t":"road","s":"Maryland"},{"x":2501.8,"y":564.4,"t":"road","s":"Pennsylvania"},{"x":2543.2,"y":526.6,"t":"road","s":"New York"},{"x":2318.9,"y":498.3,"t":"road","s":"New York"},{"x":2376.5,"y":471.9,"t":"road","s":"New York"},{"x":2429.2,"y":422.8,"t":"road","s":"New York"},{"x":2562.4,"y":305.3,"t":"road","s":"Vermont"},{"x":2618.1,"y":276.6,"t":"road","s":"New Hampshire"},{"x":2649.7,"y":232.1,"t":"road","s":"Maine"},{"x":2696.3,"y":199.7,"t":"road","s":"Maine"},{"x":2721.7,"y":265.0,"t":"road","s":"Maine"},{"x":2680.1,"y":339.2,"t":"road","s":"Maine"},{"x":2648.8,"y":382.1,"t":"road","s":"New Hampshire"},{"x":2638.5,"y":425.7,"t":"road","s":"Massachusetts"},{"x":2683.7,"y":437.5,"t":"road","s":"Massachusetts"},{"x":2678.4,"y":479.0,"t":"road","s":"Rhode Island"},{"x":2642.2,"y":495.7,"t":"road","s":"Connecticut"},{"x":2611.1,"y":499.9,"t":"road","s":"Connecticut"},{"x":2452.7,"y":361.1,"t":"road","s":"New York"},{"x":2504.3,"y":323.9,"t":"road","s":"New York"},{"x":2195.0,"y":694.5,"t":"road","s":"Ohio"},{"x":2154.3,"y":739.4,"t":"road","s":"Ohio"},{"x":2092.2,"y":778.6,"t":"road","s":"Ohio"},{"x":2044.1,"y":784.2,"t":"road","s":"Indiana"},{"x":1998.2,"y":781.8,"t":"road","s":"Indiana"},{"x":1941.6,"y":787.2,"t":"road","s":"Indiana"},{"x":1866.4,"y":780.9,"t":"road","s":"Illinois"},{"x":1818.4,"y":725.4,"t":"road","s":"Illinois"},{"x":1540.9,"y":433.1,"t":"road","s":"Minnesota"},{"x":1603.0,"y":685.3,"t":"road","s":"Iowa"},{"x":1749.3,"y":670.8,"t":"road","s":"Iowa"},{"x":1467.1,"y":935.6,"t":"road","s":"Kansas"},{"x":1464.2,"y":992.0,"t":"road","s":"Kansas"},{"x":1079.6,"y":1147.8,"t":"road","s":"New Mexico"},{"x":1184.8,"y":1168.2,"t":"road","s":"Texas"},{"x":1251.1,"y":1237.7,"t":"road","s":"Texas"},{"x":1338.4,"y":1269.0,"t":"road","s":"Texas"},{"x":531.2,"y":1182.9,"t":"road","s":"Arizona"},{"x":488.6,"y":1001.9,"t":"road","s":"Nevada"},{"x":809.8,"y":824.8,"t":"road","s":"Utah"},{"x":688.8,"y":657.2,"t":"road","s":"Utah"},{"x":297.9,"y":427.9,"t":"star","s":"Oregon"},{"x":380.5,"y":449.2,"t":"star","s":"Oregon"},{"x":469.2,"y":478.4,"t":"star","s":"Oregon"},{"x":570.7,"y":421.3,"t":"star","s":"Idaho"},{"x":937.4,"y":587.3,"t":"star","s":"Wyoming"},{"x":936.0,"y":514.4,"t":"star","s":"Wyoming"},{"x":929.0,"y":422.6,"t":"star","s":"Montana"},{"x":708.5,"y":826.5,"t":"star","s":"Utah"},{"x":1040.8,"y":985.7,"t":"star","s":"Colorado"},{"x":1789.8,"y":868.9,"t":"star","s":"Missouri"},{"x":1834.9,"y":823.1,"t":"star","s":"Illinois"},{"x":2020.3,"y":949.6,"t":"star","s":"Kentucky"},{"x":2296.2,"y":858.1,"t":"star","s":"West Virginia"},{"x":2477.5,"y":401.3,"t":"star","s":"New York"},{"x":2504.9,"y":468.4,"t":"star","s":"New York"},{"x":2279.4,"y":593.8,"t":"star","s":"Pennsylvania"},{"x":1014.1,"y":1046.5,"t":"star","s":"New Mexico"},{"x":682.7,"y":909.4,"t":"star","s":"Utah"},{"x":663.7,"y":1026.4,"t":"star","s":"Arizona"},{"x":679.9,"y":1106.7,"t":"star","s":"Arizona"},{"x":573.5,"y":334.6,"t":"star","s":"Idaho"},{"x":561.4,"y":267.4,"t":"star","s":"Idaho"},{"x":200.3,"y":785.2,"t":"bank","s":"California"},{"x":2581.3,"y":575.5,"t":"bank","s":"New York"},{"x":728,"y":224,"t":"plane","s":null},{"x":1071,"y":282,"t":"plane","s":null},{"x":1580,"y":322,"t":"plane","s":null},{"x":2034,"y":450,"t":"plane","s":null},{"x":2354,"y":584,"t":"plane","s":null},{"x":2671,"y":621,"t":"ship","s":null},{"x":2722,"y":730,"t":"ship","s":null},{"x":1763,"y":776,"t":"plane","s":null},{"x":2225,"y":774,"t":"plane","s":null},{"x":2704,"y":858,"t":"ship","s":null},{"x":1252,"y":882,"t":"plane","s":null},{"x":878,"y":936,"t":"plane","s":null},{"x":1926,"y":963,"t":"plane","s":null},{"x":2675,"y":978,"t":"ship","s":null},{"x":2632,"y":1091,"t":"ship","s":null},{"x":743,"y":1114,"t":"plane","s":null},{"x":1631,"y":1162,"t":"plane","s":null},{"x":2578,"y":1192,"t":"ship","s":null},{"x":1081,"y":1197,"t":"plane","s":null},{"x":2544,"y":1300,"t":"ship","s":null},{"x":2536,"y":1409,"t":"ship","s":null},{"x":2507,"y":1523,"t":"ship","s":null},{"x":2228,"y":1518,"t":"ship","s":null},{"x":1682,"y":1544,"t":"ship","s":null},{"x":2109,"y":1560,"t":"ship","s":null},{"x":1822,"y":1579,"t":"ship","s":null},{"x":1968,"y":1582,"t":"ship","s":null},{"x":2170,"y":544,"t":"canada","s":null},{"x":2244,"y":504,"t":"canada","s":null},{"x":2464,"y":740,"t":"road","s":"Washington D.C."}],"edges":[[28,31,"road"],[31,27,"road"],[27,3,"road"],[3,2,"road"],[2,1,"road"],[1,0,"road"],[0,211,"road"],[28,29,"road"],[30,5,"road"],[29,30,"road"],[4,24,"road"],[4,25,"road"],[25,26,"road"],[24,32,"road"],[32,33,"road"],[33,34,"road"],[34,35,"road"],[35,36,"road"],[211,36,"road"],[33,45,"road"],[45,46,"road"],[46,53,"road"],[53,187,"road"],[187,54,"road"],[54,62,"road"],[62,63,"road"],[63,64,"road"],[64,65,"road"],[211,38,"road"],[38,37,"road"],[37,39,"road"],[39,40,"road"],[40,41,"road"],[41,42,"road"],[186,43,"road"],[42,44,"road"],[44,185,"road"],[42,43,"road"],[185,48,"road"],[48,49,"road"],[49,50,"road"],[50,51,"road"],[51,52,"road"],[52,181,"road"],[46,47,"road"],[188,47,"road"],[5,6,"road"],[6,7,"road"],[7,8,"road"],[8,9,"road"],[9,10,"road"],[10,11,"road"],[11,12,"road"],[12,13,"road"],[13,22,"road"],[13,14,"road"],[22,23,"road"],[14,15,"road"],[15,21,"road"],[61,21,"road"],[26,60,"road"],[60,59,"road"],[59,58,"road"],[58,57,"road"],[57,56,"road"],[56,61,"road"],[62,55,"road"],[56,55,"road"],[65,66,"road"],[66,67,"road"],[15,16,"road"],[16,17,"road"],[17,18,"road"],[19,18,"road"],[19,20,"road"],[18,177,"road"],[177,75,"road"],[76,75,"road"],[75,178,"road"],[75,74,"road"],[77,76,"road"],[74,73,"road"],[69,20,"road"],[67,68,"road"],[68,69,"road"],[69,179,"road"],[179,180,"road"],[69,70,"road"],[70,71,"road"],[71,72,"road"],[73,72,"road"],[23,176,"road"],[176,78,"road"],[78,77,"road"],[78,79,"road"],[79,80,"road"],[80,81,"road"],[81,82,"road"],[82,83,"road"],[83,84,"road"],[84,85,"road"],[85,86,"road"],[86,87,"road"],[87,88,"road"],[88,89,"road"],[89,168,"road"],[169,168,"road"],[170,169,"road"],[171,170,"road"],[172,171,"road"],[173,172,"road"],[178,175,"road"],[175,174,"road"],[174,173,"road"],[181,182,"road"],[182,183,"road"],[183,184,"road"],[184,123,"road"],[124,123,"road"],[124,125,"road"],[125,126,"road"],[126,127,"road"],[180,127,"road"],[123,120,"road"],[120,121,"road"],[121,122,"road"],[123,119,"road"],[119,118,"road"],[118,117,"road"],[117,116,"road"],[116,115,"road"],[140,116,"road"],[140,139,"road"],[139,138,"road"],[138,136,"road"],[136,135,"road"],[115,114,"road"],[114,113,"road"],[113,112,"road"],[128,112,"road"],[129,128,"road"],[135,130,"road"],[130,129,"road"],[72,137,"road"],[137,138,"road"],[130,131,"road"],[131,132,"road"],[132,101,"road"],[128,111,"road"],[111,141,"road"],[141,142,"road"],[111,110,"road"],[110,109,"road"],[109,108,"road"],[142,143,"road"],[143,144,"road"],[144,145,"road"],[146,145,"road"],[145,147,"road"],[108,107,"road"],[107,106,"road"],[106,105,"road"],[101,100,"road"],[100,99,"road"],[105,99,"road"],[99,98,"road"],[98,242,"road"],[242,148,"road"],[148,97,"road"],[170,134,"road"],[134,133,"road"],[133,102,"road"],[102,103,"road"],[103,104,"road"],[168,90,"road"],[90,91,"road"],[91,92,"road"],[91,104,"road"],[92,93,"road"],[93,94,"road"],[149,94,"road"],[149,150,"road"],[150,212,"road"],[212,95,"road"],[97,96,"road"],[96,95,"road"],[212,165,"road"],[165,164,"road"],[164,163,"road"],[163,162,"road"],[162,161,"road"],[161,160,"road"],[160,159,"road"],[159,158,"road"],[157,158,"road"],[156,157,"road"],[155,156,"road"],[154,155,"road"],[167,154,"road"],[166,167,"road"],[166,153,"road"],[152,153,"road"],[5,210,"short"],[210,209,"short"],[209,192,"short"],[192,4,"short"],[191,4,"short"],[190,191,"short"],[189,190,"short"],[3,189,"short"],[26,188,"short"],[46,196,"short"],[196,206,"short"],[206,207,"short"],[207,208,"short"],[48,208,"short"],[52,205,"short"],[205,197,"short"],[197,64,"short"],[151,152,"short"],[58,193,"short"],[193,194,"short"],[194,195,"short"],[9,195,"short"],[198,72,"short"],[198,199,"short"],[199,174,"short"],[130,200,"short"],[200,134,"short"],[102,201,"short"],[201,100,"short"],[204,91,"short"],[204,151,"short"],[166,202,"short"],[202,203,"short"],[203,150,"short"],[151,241,"short"],[241,240,"short"],[240,87,"short"],[212,216,"air"],[216,215,"air"],[215,214,"air"],[214,213,"air"],[213,28,"air"],[212,217,"air"],[217,220,"air"],[220,223,"air"],[223,224,"air"],[224,186,"air"],[212,221,"air"],[221,225,"air"],[225,229,"air"],[229,123,"air"],[123,231,"air"],[231,228,"air"],[228,186,"air"],[122,236,"sea"],[236,238,"sea"],[238,239,"sea"],[239,237,"sea"],[237,235,"sea"],[235,146,"sea"],[147,234,"sea"],[234,233,"sea"],[233,232,"sea"],[232,230,"sea"],[230,227,"sea"],[227,226,"sea"],[226,222,"sea"],[222,219,"sea"],[219,218,"sea"],[218,212,"sea"]],"chains":[{"nodes":[189,190,191],"ends":[3,4],"kind":"short","price":10000},{"nodes":[192,209,210],"ends":[4,5],"kind":"short","price":8000},{"nodes":[193,194,195],"ends":[9,58],"kind":"short","price":2000},{"nodes":[196,206,207,208],"ends":[46,48],"kind":"short","price":6000},{"nodes":[197,205],"ends":[52,64],"kind":"short","price":2000},{"nodes":[198,199],"ends":[72,174],"kind":"short","price":2000},{"nodes":[200],"ends":[130,134],"kind":"short","price":8000},{"nodes":[201],"ends":[100,102],"kind":"short","price":12000},{"nodes":[202,203],"ends":[150,166],"kind":"short","price":12000},{"nodes":[204],"ends":[91,151],"kind":"short","price":8000},{"nodes":[213,214,215,216],"ends":[28,212],"kind":"air","price":10000},{"nodes":[217,220,223,224],"ends":[186,212],"kind":"air","price":10000},{"nodes":[218,219,222,226,227,230,232,233,234],"ends":[147,212],"kind":"sea","price":7000},{"nodes":[221,225,229],"ends":[123,212],"kind":"air","price":8000},{"nodes":[228,231],"ends":[123,186],"kind":"air","price":4000},{"nodes":[235,237,239,238,236],"ends":[122,146],"kind":"sea","price":3000},{"nodes":[240,241],"ends":[87,151],"kind":"short","price":5000}],"states":{"Arkansas":{"price":2000,"fed":1500,"bc":1500,"img":"arkansas","lx":1669,"ly":1065},"Ohio":{"price":4000,"fed":2500,"bc":500,"img":"ohio","lx":2145,"ly":696},"Wisconsin":{"price":3000,"fed":3000,"bc":1500,"img":"wisconsin","lx":1724,"ly":435},"Oregon":{"price":3000,"fed":1500,"bc":3000,"img":"oregon","lx":345,"ly":390},"Louisiana":{"price":1500,"fed":1500,"bc":1000,"img":"louisiana","lx":1721,"ly":1394},"Massachusetts":{"price":6000,"fed":1500,"bc":500,"img":"massachusetts","lx":2661,"ly":454},"Virginia":{"price":5000,"fed":1500,"bc":500,"img":"virginia","lx":2395,"ly":830},"New Jersey":{"price":8000,"fed":2500,"bc":1000,"img":"new-jersey","lx":2626,"ly":648},"North Dakota":{"price":1500,"fed":2000,"bc":2000,"img":"north-dakota","lx":1331,"ly":322},"New Mexico":{"price":2000,"fed":1500,"bc":2000,"img":"new-mexico","lx":990,"ly":1211},"Nebraska":{"price":2000,"fed":2000,"bc":1000,"img":"nebraska","lx":1312,"ly":697},"Mississippi":{"price":1000,"fed":1000,"bc":500,"img":"mississippi","lx":1871,"ly":1222},"Arizona":{"price":1500,"fed":500,"bc":2000,"img":"arizona","lx":604,"ly":1091},"Vermont":{"price":4000,"fed":1000,"bc":500,"img":"vermont","lx":2576,"ly":359},"Utah":{"price":2000,"fed":1000,"bc":2500,"img":"utah","lx":720,"ly":865},"Texas":{"price":5500,"fed":5000,"bc":3000,"img":"texas","lx":1343,"ly":1394},"Maine":{"price":4500,"fed":2000,"bc":1000,"img":"maine","lx":2688,"ly":142},"Colorado":{"price":2500,"fed":1500,"bc":2000,"img":"colorado","lx":978,"ly":865},"New York":{"price":12000,"fed":3000,"bc":1500,"img":"new-york","lx":2445,"ly":482},"South Dakota":{"price":2000,"fed":2000,"bc":2000,"img":"south-dakota","lx":1198,"ly":485},"Idaho":{"price":2500,"fed":2000,"bc":3000,"img":"idaho","lx":629,"ly":493},"Missouri":{"price":3000,"fed":3000,"bc":2000,"img":"missouri","lx":1653,"ly":843},"Wyoming":{"price":1500,"fed":2000,"bc":2000,"img":"wyoming","lx":845,"ly":527},"Florida":{"price":2000,"fed":3000,"bc":2000,"img":"florida","lx":2381,"ly":1554},"Oklahoma":{"price":1000,"fed":1000,"bc":1500,"img":"oklahoma","lx":1512,"ly":1164},"Kentucky":{"price":5000,"fed":2000,"bc":1000,"img":"kentucky","lx":2136,"ly":910},"Illinois":{"price":3000,"fed":3000,"bc":1000,"img":"illinois","lx":1882,"ly":859},"Tennessee":{"price":3500,"fed":2000,"bc":1000,"img":"tennessee","lx":2091,"ly":1040},"Minnesota":{"price":4500,"fed":3500,"bc":2500,"img":"minnesota","lx":1544,"ly":497},"Nevada":{"price":4000,"fed":2000,"bc":3500,"img":"nevada","lx":464,"ly":812},"Pennsylvania":{"price":10000,"fed":2500,"bc":1000,"img":"pennsylvania","lx":2418,"ly":595},"Rhode Island":{"price":4000,"fed":500,"bc":500,"img":"rhode-island","lx":2678,"ly":501},"New Hampshire":{"price":7000,"fed":1000,"bc":500,"img":"new-hampshire","lx":2633,"ly":351},"North Carolina":{"price":2000,"fed":1500,"bc":500,"img":"north-carolina","lx":2463,"ly":989},"Washington":{"price":2000,"fed":1500,"bc":2500,"img":"washington","lx":408,"ly":233},"West Virginia":{"price":6000,"fed":1500,"bc":500,"img":"west-virginia","lx":2296,"ly":812},"Connecticut":{"price":5000,"fed":1000,"bc":500,"img":"connecticut","lx":2674,"ly":521},"Maryland":{"price":5000,"fed":3000,"bc":1000,"img":"maryland","lx":2522,"ly":767},"South Carolina":{"price":1500,"fed":1000,"bc":1000,"img":"south-carolina","lx":2397,"ly":1123},"Iowa":{"price":2000,"fed":3000,"bc":1500,"img":"iowa","lx":1533,"ly":617},"Montana":{"price":2500,"fed":2000,"bc":2000,"img":"montana","lx":861,"ly":362},"Georgia":{"price":1500,"fed":1000,"bc":500,"img":"georgia","lx":2259,"ly":1197},"Alabama":{"price":2000,"fed":1500,"bc":500,"img":"alabama","lx":1993,"ly":1230},"Michigan":{"price":2000,"fed":2500,"bc":500,"img":"michigan","lx":2015,"ly":529},"Delaware":{"price":4000,"fed":1500,"bc":1000,"img":"delaware","lx":2603,"ly":720},"Indiana":{"price":3000,"fed":2000,"bc":500,"img":"indiana","lx":1992,"ly":747},"Kansas":{"price":2500,"fed":2000,"bc":2000,"img":"kansas","lx":1399,"ly":918},"Washington D.C.":{"price":0,"fed":1000,"bc":500,"img":"washington-dc","lx":2464,"ly":762},"California":{"price":75000,"fed":30000,"bc":0,"img":"california","lx":339,"ly":950}},"adj":{"Washington":["Idaho","Oregon"],"Oregon":["California","Idaho","Washington"],"California":["Arizona","Nevada","Oregon"],"Idaho":["Montana","Nevada","Oregon","Utah","Washington","Wyoming"],"Nevada":["California","Idaho","Utah"],"Utah":["Arizona","Colorado","Idaho","Nevada"],"Colorado":["Kansas","New Mexico","Utah","Wyoming"],"Arizona":["California","New Mexico","Utah"],"New Mexico":["Arizona","Colorado","Texas"],"Montana":["Idaho","North Dakota","Wyoming"],"North Dakota":["Minnesota","Montana","South Dakota"],"South Dakota":["Nebraska","North Dakota"],"Minnesota":["Iowa","North Dakota","Wisconsin"],"Nebraska":["Iowa","Kansas","South Dakota","Wyoming"],"Wyoming":["Colorado","Idaho","Montana","Nebraska"],"Kansas":["Colorado","Missouri","Nebraska","Oklahoma"],"Iowa":["Illinois","Minnesota","Missouri","Nebraska"],"Missouri":["Arkansas","Illinois","Iowa","Kansas"],"Wisconsin":["Illinois","Minnesota"],"Illinois":["Indiana","Iowa","Missouri","Wisconsin"],"Indiana":["Illinois","Michigan","Ohio"],"Michigan":["Indiana","Ohio"],"Ohio":["Indiana","Kentucky","Michigan","Pennsylvania"],"Texas":["Louisiana","New Mexico","Oklahoma"],"Oklahoma":["Kansas","Texas"],"Louisiana":["Arkansas","Mississippi","Texas"],"Mississippi":["Alabama","Louisiana"],"Arkansas":["Louisiana","Missouri","Tennessee"],"Tennessee":["Alabama","Arkansas","Kentucky","Virginia"],"Alabama":["Georgia","Mississippi","Tennessee"],"Virginia":["North Carolina","Tennessee","Washington D.C.","West Virginia"],"Georgia":["Alabama","Florida","South Carolina"],"South Carolina":["Georgia","North Carolina"],"Florida":["Georgia"],"North Carolina":["South Carolina","Virginia"],"Washington D.C.":["Maryland","Virginia"],"Maryland":["Delaware","Washington D.C."],"Delaware":["Maryland","New Jersey"],"Kentucky":["Ohio","Tennessee","West Virginia"],"West Virginia":["Kentucky","Pennsylvania","Virginia"],"Pennsylvania":["New York","Ohio","West Virginia"],"New York":["Connecticut","New Jersey","Pennsylvania","Vermont"],"New Jersey":["Delaware","New York"],"Connecticut":["New York","Rhode Island"],"Rhode Island":["Connecticut","Massachusetts"],"Massachusetts":["New Hampshire","Rhode Island"],"New Hampshire":["Maine","Massachusetts","Vermont"],"Maine":["New Hampshire"],"Vermont":["New Hampshire","New York"]},"FED":212,"BC":211};
+if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?window:globalThis).GAME_DATA;
+
+/* IMMIGRANTS – herní logika (bez DOM). Funguje v prohlížeči i v Node. */
+(function (root) {
+  'use strict';
+  const D = root.GAME_DATA || (typeof require !== 'undefined' ? require('./data.js') : null);
+  const FED = D.FED, BC = D.BC;
+  const N = D.nodes;
+
+  // ---------- statická data ----------
+  const ADJ = N.map(() => []);
+  D.edges.forEach(([a, b, k], i) => { ADJ[a].push({ v: b, k, e: i }); ADJ[b].push({ v: a, k, e: i }); });
+  const CHAIN_OF = {};             // uzel -> index placené trasy
+  D.chains.forEach((c, i) => c.nodes.forEach(n => { CHAIN_OF[n] = i; }));
+  const PAID_TYPES = { star: 1, canada: 1, plane: 1, ship: 1 };
+  const START_CASH = 25000;
+  const BONUS_FIRST = 5000;
+  const DICE_FEE = { 1: 5000, 2: 0, 3: 10000, 4: 20000 };
+  const COLORS = [
+    { id: 'red', name: 'Červená', hex: '#e0262b' },
+    { id: 'yellow', name: 'Žlutá', hex: '#f5d50f' },
+    { id: 'green', name: 'Zelená', hex: '#1f7a3a' },
+    { id: 'blue', name: 'Modrá', hex: '#2370c4' },
+    { id: 'purple', name: 'Fialová', hex: '#7a2f9e' },
+    { id: 'black', name: 'Černá', hex: '#1d1d1f' },
+    { id: 'white', name: 'Bílá', hex: '#f4f4f2' },
+  ];
+  const LABELS = {
+    double: { name: 'Double Label', price: 10000, count: 4, img: 'double-label', desc: 'Zdvojnásobí mýtné za průjezd i zastavení v označeném státě.' },
+    special: { name: 'Special Label', price: 15000, count: 4, img: 'special-label', desc: 'Kdo v označeném státě zastaví, zaplatí navíc hodnotu svého hodu × 1 000 $.' },
+    independent: { name: 'Independent Label', price: 30000, count: 4, img: 'independent-label', desc: 'Ostatní hráči nesmí státem projet (kromě držitele Federal Highways).' },
+  };
+  // speciální karty (California je karta státu, řeší se zvlášť)
+  const CARDS = {
+    sea: { name: 'Sea Lines', price: 20000, img: 'sea-lines', desc: 'Lodní linky zdarma; ostatní platí poplatek za lodní trasy vám.' },
+    air: { name: 'Air Lines', price: 40000, img: 'air-lines', desc: 'Letecké linky zdarma; ostatní platí poplatek za lety vám.' },
+    chief: { name: 'Chief', price: 150000, deposit: 50000, img: 'chief', rent: true, desc: 'Zdvojnásobí mýtné a zisk v BC (kromě FED). Zápůjčka za vratnou jistinu 50 000 $, koupě 150 000 $.' },
+    commander: { name: 'Commander', price: 500000, deposit: 250000, img: 'commander', rent: true, desc: 'Zčtyřnásobí mýtné a zisk v BC (kromě FED). Zápůjčka za vratnou jistinu 250 000 $, koupě 500 000 $.' },
+    snb: { name: 'Second National Bank', price: 50000, img: 'second-national-bank', desc: 'Třetí banka ve vašem státě: ostatní zde inkasují od vás 1 000 $ za každý svůj stát. Ve FED dostáváte 15 000 $.' },
+    fedhw: { name: 'Federal Highways', price: 150000, img: 'federal-highways', desc: 'Smíte projíždět státy se značkou Independent Label.' },
+    freemove: { name: 'Free Movement', price: 300000, img: 'free-movement', desc: 'Smíte během jízdy měnit směr. Do banky se ale nesmíte vrátit stejnou cestou.' },
+    mafia: { name: 'Mafia', price: 400000, img: 'mafia', onlyFED: true, desc: 'Zápůjčka na jednu jízdu (do návratu do FED). Hráče, se kterým se na trase zkřížíte, vyřadíte ze hry. Platí se jen na políčku banky FED, peníze se nevrací.' },
+    sh10: { name: 'Shareholder 10 %', price: 30000, img: 'shareholder-10', pct: 10, desc: '10% sleva na speciální karty a 10% podíl z každého prodeje speciální karty ostatním.' },
+    sh20a: { name: 'Shareholder 20 %', price: 60000, img: 'shareholder-20a', pct: 20, desc: '20% sleva na speciální karty a 20% podíl z každého prodeje speciální karty ostatním.' },
+    sh20b: { name: 'Shareholder 20 %', price: 60000, img: 'shareholder-20b', pct: 20, desc: '20% sleva na speciální karty a 20% podíl z každého prodeje speciální karty ostatním.' },
+  };
+  const SH = ['sh10', 'sh20a', 'sh20b'];
+
+  function rnd(n) { return 1 + Math.floor(Math.random() * n); }
+  const nodeState = n => N[n].s || null;
+  const edgeKey = e => e;
+
+  // ---------- vytvoření hry ----------
+  function newGame(players, opts) {
+    opts = opts || {};
+    const g = {
+      v: 1,
+      opts: { targetCash: opts.targetCash || 0, targetStates: opts.targetStates || 0 },
+      turn: 1,
+      cur: 0,
+      players: players.map((p, i) => ({
+        id: i, name: p.name, color: p.color || COLORS[i].id, ai: !!p.ai,
+        cash: START_CASH, node: FED, alive: true,
+        trip: { from: FED, used: [] }, prevEdge: null,
+        circuit: 0, rerollUsed: false, bonusBC: false, bonusFED: false,
+        diceN: 2, paid: {},        // paid: cena zaplacená za karty (pro prodej bance)
+      })),
+      states: {},                  // stát -> {owner, legal, label}
+      cards: {},                   // karta -> {owner, mode:'own'|'rent', deposit}
+      labelsLeft: { double: 4, special: 4, independent: 4 },
+      snb: null,                   // stát, kde stojí Second National Bank
+      debts: [],                   // {p, to, amt, why}
+      pending: null,
+      move: null,
+      log: [],
+      winner: null,
+    };
+    Object.keys(D.states).forEach(s => { g.states[s] = { owner: -1, legal: false, label: null }; });
+    g.pending = { type: 'start', p: 0 };
+    return g;
+  }
+
+  // ---------- pomocné ----------
+  function P(g, i) { return g.players[i]; }
+  function alive(g) { return g.players.filter(p => p.alive); }
+  function ownedStates(g, i) { return Object.keys(g.states).filter(s => g.states[s].owner === i); }
+  function hasCard(g, i, c) { return g.cards[c] && g.cards[c].owner === i; }
+  function cardOwner(g, c) { return g.cards[c] ? g.cards[c].owner : -1; }
+  function caliOwner(g) { return g.states.California.owner; }
+  function shareholderPct(g, i) { return SH.reduce((s, c) => s + (hasCard(g, i, c) ? CARDS[c].pct : 0), 0); }
+  function tollMult(g, owner, state) {
+    let m = 1;
+    if (state && g.states[state].label === 'double') m *= 2;
+    if (hasCard(g, owner, 'chief')) m *= 2;
+    if (hasCard(g, owner, 'commander')) m *= 4;
+    return m;
+  }
+  function multTxt(g, owner, state) {
+    const parts = [];
+    if (state && g.states[state].label === 'double') parts.push('Double ×2');
+    if (hasCard(g, owner, 'chief')) parts.push('Chief ×2');
+    if (hasCard(g, owner, 'commander')) parts.push('Commander ×4');
+    return parts.length ? ` (${parts.join(', ')})` : '';
+  }
+  function profitMult(g, i) { return (hasCard(g, i, 'chief') ? 2 : 1) * (hasCard(g, i, 'commander') ? 4 : 1); }
+  function fmt(n) { return (n < 0 ? '−' : '') + Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' $'; }
+
+  function ev(g, out, e) { out.push(e); if (e.text) { g.log.push({ turn: g.turn, text: e.text }); if (g.log.length > 200) g.log.shift(); } }
+
+  // platba; to = -1 je banka. Když nemá dost, vznikne dluh.
+  function pay(g, out, from, to, amt, why) {
+    amt = Math.round(amt);
+    if (amt <= 0 || from === to) return;
+    if (from === -1) { P(g, to).cash += amt; ev(g, out, { t: 'pay', from, to, amt, why }); return; }
+    const pf = P(g, from);
+    if (!pf.alive) return;
+    const give = Math.max(0, Math.min(pf.cash, amt));
+    pf.cash -= give;
+    if (to >= 0 && P(g, to).alive) P(g, to).cash += give;
+    ev(g, out, { t: 'pay', from, to, amt: give, why, owed: amt - give });
+    if (amt > give) g.debts.push({ p: from, to, amt: amt - give, why });
+  }
+
+  // ---------- pohyb ----------
+  function blockedFor(g, i, v, fromNode) {
+    const s = nodeState(v);
+    if (!s) return false;
+    const st = g.states[s];
+    if (st.label !== 'independent' || st.owner === i || st.owner < 0) return false;
+    if (hasCard(g, i, 'fedhw')) return false;
+    if (nodeState(fromNode) === s) return false; // už je uvnitř
+    return true;
+  }
+  function chainFee(g, i, u, v) {
+    if (!(v in CHAIN_OF) || (u in CHAIN_OF && CHAIN_OF[u] === CHAIN_OF[v])) return null;
+    const c = D.chains[CHAIN_OF[v]];
+    const ownerCard = c.kind === 'air' ? 'air' : c.kind === 'sea' ? 'sea' : null;
+    let owner = ownerCard ? cardOwner(g, ownerCard) : caliOwner(g);
+    if (owner >= 0 && !P(g, owner).alive) owner = -1;
+    if (owner === i) return { amt: 0, to: i, kind: c.kind };
+    return { amt: c.price, to: owner, kind: c.kind };
+  }
+  // průjezdné mýtné za překročení hranice u->v
+  function crossToll(g, i, u, v) {
+    const su = nodeState(u), sv = nodeState(v);
+    if (su === sv) return [];
+    const res = [];
+    [su, sv].forEach(s => {
+      if (!s) return;
+      const st = g.states[s];
+      if (st.owner >= 0 && st.owner !== i && st.legal && P(g, st.owner).alive)
+        res.push({ to: st.owner, amt: 1000 * tollMult(g, st.owner, s), state: s, exit: s === su });
+    });
+    return res;
+  }
+  function moveOptions(g, i) {
+    const p = P(g, i), u = p.node;
+    const free = hasCard(g, i, 'freemove');
+    const used = new Set(p.trip.used);
+    let opts = ADJ[u].filter(a => {
+      if (blockedFor(g, i, a.v, u)) return false;
+      if (used.has(a.e)) {
+        if (!free) return false;
+        if (a.v === p.trip.from && (a.v === FED || a.v === BC)) return false;
+      }
+      return true;
+    });
+    // do placené trasy nevjíždět, pokud všechny její konce vedou do zakázaného státu
+    opts = opts.filter(a => {
+      if (!(a.v in CHAIN_OF) || (u in CHAIN_OF && CHAIN_OF[u] === CHAIN_OF[a.v])) return true;
+      const c = D.chains[CHAIN_OF[a.v]];
+      return c.ends.some(en => en !== u && !blockedFor(g, i, en, a.v));
+    });
+    if (!opts.length) opts = ADJ[u].filter(a => !blockedFor(g, i, a.v, u) && !(a.e === p.prevEdge && ADJ[u].length > 1));
+    if (!opts.length) opts = ADJ[u].filter(a => !blockedFor(g, i, a.v, u));
+    if (!opts.length) opts = ADJ[u].slice();
+    let res = opts.map(a => {
+      const fee = chainFee(g, i, u, a.v);
+      const tolls = crossToll(g, i, u, a.v);
+      return { to: a.v, e: a.e, kind: a.k, fee: fee ? fee.amt : 0, feeTo: fee ? fee.to : -1, toll: tolls.reduce((s, t) => s + t.amt, 0) };
+    });
+    // placenou trasu nelze použít bez peněz na jízdenku (pokud existuje jiná možnost)
+    const afford = res.filter(o => o.fee <= p.cash);
+    if (afford.length) res = afford;
+    return res;
+  }
+
+  function startTrip(p, bank) { p.trip = { from: bank, used: [] }; p.prevEdge = null; }
+
+  function stepTo(g, out, i, opt) {
+    const p = P(g, i), u = p.node, v = opt.to;
+    const fee = chainFee(g, i, u, v);
+    if (fee && fee.amt > 0) {
+      const kindTxt = fee.kind === 'air' ? 'letecká linka' : fee.kind === 'sea' ? 'lodní linka' : 'zkratka';
+      pay(g, out, i, fee.to, fee.amt, `Poplatek – ${kindTxt}`);
+    }
+    crossToll(g, i, u, v).forEach(t => pay(g, out, i, t.to, t.amt, `Mýtné ${t.exit ? 'výjezd ze státu' : 'vjezd do státu'} ${t.state}${multTxt(g, t.to, t.state)}`));
+    p.trip.used.push(opt.e); p.prevEdge = opt.e;
+    p.node = v;
+    ev(g, out, { t: 'move', p: i, from: u, to: v });
+    // mafie – zkřížení figurek
+    mafiaCheck(g, out, i, v);
+    if (!p.alive) return;
+    // Second National Bank
+    const sv = nodeState(v);
+    if (g.snb && sv === g.snb && nodeState(u) !== sv) {
+      const holder = cardOwner(g, 'snb');
+      if (holder >= 0 && holder !== i && P(g, holder).alive && g.states[sv].owner === holder) {
+        const cnt = ownedStates(g, i).length;
+        ev(g, out, { t: 'bank', p: i, bank: 'SNB', text: `${p.name} projíždí Second National Bank (${sv}).` });
+        if (cnt) pay(g, out, holder, i, 1000 * cnt, `Second National Bank – podíl za ${cnt} států`);
+        startTrip(p, v);
+      }
+    }
+  }
+
+  function mafiaCheck(g, out, i, v) {
+    const m = g.cards.mafia;
+    if (!m || m.owner < 0) return;
+    const holder = m.owner;
+    if (!P(g, holder).alive || v === FED || v === BC) return;
+    if (holder === i) {
+      g.players.forEach(q => {
+        if (q.id !== i && q.alive && q.node === v) eliminate(g, out, q.id, `${q.name} byl vyřazen Mafií hráče ${P(g, i).name}.`);
+      });
+    } else if (P(g, holder).node === v) {
+      eliminate(g, out, i, `${P(g, i).name} zkřížil cestu Mafii hráče ${P(g, holder).name} a byl vyřazen.`);
+    }
+  }
+
+  // ---------- banky ----------
+  function arriveBank(g, out, i, bank) {
+    const p = P(g, i);
+    const items = [];
+    if (bank === FED) {
+      // legalizace
+      const newly = ownedStates(g, i).filter(s => !g.states[s].legal);
+      newly.forEach(s => { g.states[s].legal = true; });
+      if (newly.length) ev(g, out, { t: 'legal', p: i, states: newly, text: `${p.name} legalizoval ${newly.length} ${newly.length === 1 ? 'stát' : newly.length < 5 ? 'státy' : 'států'}.` });
+      if (!p.bonusFED) { p.bonusFED = true; items.push({ label: 'Bonus za první příjezd', amt: BONUS_FIRST }); }
+      ownedStates(g, i).forEach(s => {
+        if (s === 'California') items.push({ label: 'California (karta)', amt: 30000 });
+        else if (D.states[s].fed) items.push({ label: s, amt: D.states[s].fed });
+      });
+      if (hasCard(g, i, 'snb')) items.push({ label: 'Second National Bank', amt: 15000 });
+      const total = items.reduce((s, x) => s + x.amt, 0);
+      ev(g, out, { t: 'bank', p: i, bank: 'FED', items, total, text: `${p.name} dorazil do banky FED (New York) a inkasuje ${fmt(total)}.` });
+      if (total) pay(g, out, -1, i, total, 'Výplata banky FED');
+      // vrácení Mafie
+      if (hasCard(g, i, 'mafia')) { delete g.cards.mafia; ev(g, out, { t: 'msg', text: `${p.name} vrací kartu Mafia.` }); }
+      if (p.circuit === 1) p.circuit = 2;
+    } else {
+      if (!p.bonusBC) { p.bonusBC = true; items.push({ label: 'Bonus za první příjezd', amt: BONUS_FIRST }); }
+      const co = caliOwner(g);
+      const payer = co >= 0 && co !== i && P(g, co).alive ? co : -1;
+      let sub = 0;
+      if (co !== i) {
+        const m = profitMult(g, i);
+        ownedStates(g, i).forEach(s => { if (D.states[s].bc) { items.push({ label: s + (m > 1 ? ` ×${m}` : ''), amt: D.states[s].bc * m }); sub += D.states[s].bc * m; } });
+      }
+      const total = items.reduce((s, x) => s + x.amt, 0);
+      ev(g, out, { t: 'bank', p: i, bank: 'BC', items, total, payer, text: co === i ? `${p.name} vlastní Californii – v Sacramentu nic neinkasuje.` : `${p.name} dorazil do banky BC (Sacramento) a inkasuje ${fmt(total)}${payer >= 0 ? ` (podíl vyplácí ${P(g, payer).name})` : ''}.` });
+      const bonus = total - sub;
+      if (bonus) pay(g, out, -1, i, bonus, 'Bonus BC');
+      if (sub) { if (payer >= 0) pay(g, out, payer, i, sub, 'Výplata v BC (majitel Californie)'); else pay(g, out, -1, i, sub, 'Výplata banky BC'); }
+      if (p.circuit === 0) p.circuit = 1;
+    }
+    startTrip(p, bank);
+  }
+
+  // ---------- vyřazení ----------
+  function releaseAssets(g, i) {
+    Object.keys(g.states).forEach(s => {
+      const st = g.states[s];
+      if (st.owner === i) { if (st.label) g.labelsLeft[st.label]++; g.states[s] = { owner: -1, legal: false, label: null }; }
+    });
+    Object.keys(g.cards).forEach(c => { if (g.cards[c].owner === i) delete g.cards[c]; });
+    if (g.snb && !g.cards.snb) g.snb = null;
+  }
+  function eliminate(g, out, i, text) {
+    const p = P(g, i);
+    if (!p.alive) return;
+    p.alive = false; p.cash = 0;
+    releaseAssets(g, i);
+    g.debts = g.debts.filter(d => d.p !== i);
+    ev(g, out, { t: 'elim', p: i, text });
+    checkWin(g, out, true);
+  }
+
+  // ---------- nákupy ----------
+  function canBuyState(g, i) {
+    const p = P(g, i), s = nodeState(p.node);
+    if (!s || !g.states[s] || g.states[s].owner >= 0) return null;
+    if (p.node === FED) return null; // New York nelze koupit na políčku banky
+    const price = D.states[s].price;
+    return { state: s, price };
+  }
+  function buyState(g, out, i, s) {
+    const p = P(g, i), price = D.states[s].price;
+    if (p.cash < price) return false;
+    p.cash -= price;
+    g.states[s] = { owner: i, legal: false, label: null };
+    ev(g, out, { t: 'buy', p: i, state: s, amt: price, text: price ? `${p.name} kupuje ${s} za ${fmt(price)}.` : `${p.name} získává ${s} zdarma.` });
+    ev(g, out, { t: 'pay', from: i, to: -1, amt: price, why: 'Nákup státu ' + s, silent: true });
+    return true;
+  }
+
+  function cardPriceFor(g, i, c) {
+    const base = CARDS[c].price;
+    const disc = shareholderPct(g, i);
+    return Math.round(base * (100 - disc) / 100);
+  }
+  function shareholderPayouts(g, out, buyer, base) {
+    SH.forEach(c => {
+      const o = cardOwner(g, c);
+      if (o >= 0 && o !== buyer && P(g, o).alive) pay(g, out, -1, o, base * CARDS[c].pct / 100, `Podíl ${CARDS[c].name} z prodeje karty`);
+    });
+  }
+  // co může hráč s kartou udělat
+  function cardActions(g, i, c) {
+    const def = CARDS[c], cur = g.cards[c], p = P(g, i), res = [];
+    if (!p.alive) return res;
+    if (c === 'mafia') {
+      if (!cur && p.node === FED && g.pending && g.pending.type === 'start' && g.pending.p === i)
+        res.push({ act: 'rent', cost: cardPriceFor(g, i, c), label: 'Zapůjčit na jednu jízdu' });
+      return res;
+    }
+    if (def.rent) {
+      if (!cur) {
+        res.push({ act: 'rent', cost: def.deposit, label: 'Zapůjčit (jistina)' });
+        res.push({ act: 'buy', cost: cardPriceFor(g, i, c), label: 'Koupit' });
+      } else if (cur.owner === i && cur.mode === 'rent') {
+        res.push({ act: 'buyout', cost: Math.max(0, cardPriceFor(g, i, c) - cur.deposit), label: 'Dokoupit' });
+        res.push({ act: 'return', cost: -cur.deposit, label: 'Vrátit (jistina zpět)' });
+      } else if (cur.owner !== i && cur.mode === 'rent') {
+        res.push({ act: 'outbid', cost: cur.deposit + 10000, label: 'Přeplatit jistinu' });
+        res.push({ act: 'buy', cost: cardPriceFor(g, i, c), label: 'Koupit' });
+      }
+      return res;
+    }
+    if (!cur) {
+      if (c === 'snb' && !ownedStates(g, i).some(s => s !== 'New York' && s !== 'California')) return res;
+      res.push({ act: 'buy', cost: cardPriceFor(g, i, c), label: 'Koupit' });
+    }
+    return res;
+  }
+  function cardAct(g, i, c, act, extra) {
+    const out = [], p = P(g, i), def = CARDS[c];
+    const opt = cardActions(g, i, c).find(o => o.act === act);
+    if (!opt) return { ok: false, out, err: 'Tuto akci teď nelze provést.' };
+    if (opt.cost > 0 && p.cash < opt.cost) return { ok: false, out, err: 'Nemáte dost peněz.' };
+    const cur = g.cards[c];
+    if (act === 'buy') {
+      if (cur && cur.mode === 'rent' && cur.owner !== i) pay(g, out, -1, cur.owner, cur.deposit, `Vrácená jistina ${def.name}`);
+      p.cash -= opt.cost; p.paid[c] = opt.cost;
+      g.cards[c] = { owner: i, mode: 'own' };
+      shareholderPayouts(g, out, i, def.price);
+      if (c === 'snb') g.snb = extra && extra.state || null;
+      ev(g, out, { t: 'card', p: i, card: c, text: `${p.name} kupuje kartu ${def.name} za ${fmt(opt.cost)}.` });
+    } else if (act === 'rent') {
+      p.cash -= opt.cost;
+      if (c === 'mafia') { g.cards[c] = { owner: i, mode: 'rent' }; shareholderPayouts(g, out, i, def.price); }
+      else g.cards[c] = { owner: i, mode: 'rent', deposit: opt.cost };
+      ev(g, out, { t: 'card', p: i, card: c, text: `${p.name} si zapůjčuje kartu ${def.name} (${fmt(opt.cost)}).` });
+    } else if (act === 'outbid') {
+      pay(g, out, -1, cur.owner, cur.deposit, `Vrácená jistina ${def.name}`);
+      const prev = P(g, cur.owner).name;
+      p.cash -= opt.cost;
+      g.cards[c] = { owner: i, mode: 'rent', deposit: opt.cost };
+      ev(g, out, { t: 'card', p: i, card: c, text: `${p.name} přeplatil hráče ${prev} a zapůjčuje si ${def.name} (${fmt(opt.cost)}).` });
+    } else if (act === 'buyout') {
+      p.cash -= opt.cost; p.paid[c] = opt.cost + cur.deposit;
+      g.cards[c] = { owner: i, mode: 'own' };
+      shareholderPayouts(g, out, i, def.price);
+      ev(g, out, { t: 'card', p: i, card: c, text: `${p.name} dokupuje kartu ${def.name}.` });
+    } else if (act === 'return') {
+      p.cash += cur.deposit; delete g.cards[c];
+      ev(g, out, { t: 'card', p: i, card: c, text: `${p.name} vrací kartu ${def.name} a dostává zpět jistinu ${fmt(-opt.cost)}.` });
+    }
+    return { ok: true, out };
+  }
+  function placeSNB(g, i, s) {
+    if (!hasCard(g, i, 'snb') || g.states[s].owner !== i || s === 'New York' || s === 'California') return false;
+    g.snb = s; return true;
+  }
+
+  // ---------- značky ----------
+  function bankStates(g) { const b = ['New York', 'California']; if (g.snb) b.push(g.snb); return b; }
+  function labelCheck(g, i, type, s) {
+    const st = g.states[s], p = P(g, i);
+    if (!st || st.owner !== i) return 'Stát vám nepatří.';
+    if (st.label) return 'Stát už má značku.';
+    if (g.labelsLeft[type] <= 0) return 'Všechny značky tohoto typu jsou rozebrané.';
+    if (p.cash < LABELS[type].price) return 'Nemáte dost peněz.';
+    const banks = bankStates(g);
+    if (banks.includes(s)) return 'Značku nelze umístit do státu s bankou.';
+    if (type === 'independent') {
+      if (banks.some(b => (D.adj[b] || []).includes(s))) return 'Independent Label nelze dát do státu sousedícího s bankou.';
+      // každý hráč musí mít stále cestu mezi bankami
+      st.label = 'independent';
+      const ok = g.players.every(q => !q.alive || q.id === i || hasCard(g, q.id, 'fedhw') || connected(g, q.id));
+      st.label = null;
+      if (!ok) return 'Značka by některému hráči znemožnila cestu do banky.';
+    }
+    return null;
+  }
+  function connected(g, i) {
+    const seen = new Set([FED]), q = [FED];
+    while (q.length) {
+      const u = q.shift();
+      if (u === BC) return true;
+      ADJ[u].forEach(a => { if (!seen.has(a.v) && !blockedFor(g, i, a.v, u)) { seen.add(a.v); q.push(a.v); } });
+    }
+    return false;
+  }
+  function placeLabel(g, i, type, s) {
+    const err = labelCheck(g, i, type, s);
+    if (err) return { ok: false, err, out: [] };
+    const out = [], p = P(g, i);
+    p.cash -= LABELS[type].price; g.labelsLeft[type]--;
+    g.states[s].label = type;
+    ev(g, out, { t: 'label', p: i, state: s, label: type, text: `${p.name} umístil ${LABELS[type].name} na ${s}.` });
+    return { ok: true, out };
+  }
+
+  // ---------- prodej bance ----------
+  function sellables(g, i) {
+    const res = [];
+    ownedStates(g, i).forEach(s => {
+      const lab = g.states[s].label;
+      res.push({ kind: 'state', id: s, name: s + (lab ? ` + ${LABELS[lab].name}` : ''), value: D.states[s].price + (lab ? LABELS[lab].price : 0) });
+    });
+    Object.keys(g.cards).forEach(c => {
+      const cd = g.cards[c];
+      if (cd.owner !== i || c === 'mafia') return;
+      if (cd.mode === 'rent') res.push({ kind: 'card', id: c, name: CARDS[c].name + ' (vrátit zápůjčku)', value: cd.deposit });
+      else res.push({ kind: 'card', id: c, name: CARDS[c].name, value: P(g, i).paid[c] != null ? P(g, i).paid[c] : CARDS[c].price });
+    });
+    return res;
+  }
+  function sell(g, i, kind, id) {
+    const out = [], p = P(g, i);
+    const it = sellables(g, i).find(x => x.kind === kind && x.id === id);
+    if (!it) return { ok: false, out };
+    if (kind === 'state') {
+      const lab = g.states[id].label; if (lab) g.labelsLeft[lab]++;
+      g.states[id] = { owner: -1, legal: false, label: null };
+      if (g.snb === id) g.snb = null;
+    } else { delete g.cards[id]; if (id === 'snb') g.snb = null; }
+    p.cash += it.value;
+    ev(g, out, { t: 'sell', p: i, text: `${p.name} prodává bance: ${it.name} za ${fmt(it.value)}.` });
+    settleDebts(g, out, i);
+    return { ok: true, out };
+  }
+  function settleDebts(g, out, i) {
+    const p = P(g, i);
+    g.debts.filter(d => d.p === i).forEach(d => {
+      const give = Math.min(p.cash, d.amt);
+      if (give > 0) {
+        p.cash -= give; d.amt -= give;
+        if (d.to >= 0 && P(g, d.to).alive) P(g, d.to).cash += give;
+        ev(g, out, { t: 'pay', from: i, to: d.to, amt: give, why: 'Splátka dluhu: ' + d.why });
+      }
+    });
+    g.debts = g.debts.filter(d => d.amt > 0);
+  }
+  function debtOf(g, i) { return g.debts.filter(d => d.p === i).reduce((s, d) => s + d.amt, 0); }
+
+  // ---------- obchod mezi hráči ----------
+  // offer = {a, b, give:{states:[],cards:[],cash}, get:{...}}
+  function tradeValid(g, t) {
+    const chk = (i, side) => {
+      const p = P(g, i);
+      if (!p.alive) return false;
+      if ((side.cash || 0) > p.cash) return false;
+      if ((side.states || []).some(s => g.states[s].owner !== i)) return false;
+      if ((side.cards || []).some(c => !g.cards[c] || g.cards[c].owner !== i || g.cards[c].mode !== 'own')) return false;
+      return true;
+    };
+    return chk(t.a, t.give) && chk(t.b, t.get);
+  }
+  function doTrade(g, t) {
+    const out = [];
+    if (!tradeValid(g, t)) return { ok: false, out };
+    const move = (from, to, side) => {
+      (side.states || []).forEach(s => { g.states[s].owner = to; g.states[s].legal = false; if (g.snb === s && cardOwner(g, 'snb') !== to) g.snb = null; });
+      (side.cards || []).forEach(c => { g.cards[c].owner = to; P(g, to).paid[c] = P(g, from).paid[c] != null ? P(g, from).paid[c] : CARDS[c].price; if (c === 'snb' && (!g.snb || g.states[g.snb].owner !== to)) g.snb = null; });
+      if (side.cash) { P(g, from).cash -= side.cash; P(g, to).cash += side.cash; }
+    };
+    move(t.a, t.b, t.give); move(t.b, t.a, t.get);
+    // SNB stojí ve státě, který už držiteli nepatří
+    if (g.snb && g.states[g.snb].owner !== cardOwner(g, 'snb')) g.snb = null;
+    ev(g, out, { t: 'trade', text: `Obchod: ${P(g, t.a).name} ⇄ ${P(g, t.b).name}.` });
+    return { ok: true, out };
+  }
+  function assetValue(g, side) {
+    return (side.cash || 0) + (side.states || []).reduce((s, x) => s + D.states[x].price + (g.states[x].label ? LABELS[g.states[x].label].price : 0) + (D.states[x].fed + D.states[x].bc) * 4, 0)
+      + (side.cards || []).reduce((s, c) => s + CARDS[c].price, 0);
+  }
+
+  // ---------- průběh tahu ----------
+  function nextPlayer(g) {
+    const n = g.players.length;
+    let j = g.cur;
+    for (let k = 0; k < n; k++) { j = (j + 1) % n; if (P(g, j).alive) break; }
+    if (j <= g.cur) g.turn++;
+    g.cur = j;
+  }
+  function checkWin(g, out, onlyLast) {
+    if (g.winner != null) return true;
+    const al = alive(g);
+    let w = null;
+    if (al.length === 1) w = al[0].id;
+    else if (!onlyLast) {
+      if (g.opts.targetCash) { const c = al.find(p => p.cash >= g.opts.targetCash); if (c) w = c.id; }
+      if (w == null && g.opts.targetStates) { const c = al.find(p => ownedStates(g, p.id).length >= g.opts.targetStates); if (c) w = c.id; }
+    }
+    if (w != null) { g.winner = w; g.pending = { type: 'over', winner: w }; ev(g, out, { t: 'win', p: w, text: `${P(g, w).name} vyhrává hru!` }); return true; }
+    return false;
+  }
+
+  // po každém kroku: dluhy -> rozhodnutí
+  function afterResolve(g, out) {
+    const debtor = g.debts.find(d => P(g, d.p).alive);
+    if (debtor) { g.pending = { type: 'debt', p: debtor.p, amt: debtOf(g, debtor.p), resume: g.pending }; return; }
+  }
+
+  function endTurn(g, out) {
+    if (checkWin(g, out)) return;
+    nextPlayer(g);
+    const p = P(g, g.cur);
+    g.move = null;
+    g.pending = { type: 'start', p: g.cur };
+    ev(g, out, { t: 'turn', p: g.cur });
+    if (g.snb && !g.cards.snb) g.snb = null;
+  }
+
+  function roll(g, i, n) {
+    const out = [], p = P(g, i);
+    n = n || p.diceN || 2;
+    if (!g.pending || g.pending.type !== 'start' || g.pending.p !== i) return { ok: false, out };
+    const fee = DICE_FEE[n] || 0;
+    if (fee && p.cash < fee) return { ok: false, out, err: 'Nemáte dost peněz na poplatek za kostky.' };
+    if (fee) pay(g, out, i, -1, fee, `Poplatek za hod ${n} ${n === 1 ? 'kostkou' : 'kostkami'}`);
+    g.move = { n, rolls: 0 };
+    doRoll(g, out, i);
+    return { ok: true, out };
+  }
+  function doRoll(g, out, i) {
+    const p = P(g, i), n = g.move.n;
+    const dice = Array.from({ length: n }, () => rnd(6));
+    const dbl = n === 2 && dice[0] === dice[1];
+    g.move.dice = dice; g.move.dbl = dbl; g.move.rolls++; g.lastRoll = { p: i, dice };
+    g.move.left = dice.reduce((a, b) => a + b, 0);
+    g.move.total = g.move.left;
+    ev(g, out, { t: 'dice', p: i, dice, dbl, text: `${p.name} hází ${dice.join(' + ')} = ${g.move.left}${dbl ? ' (dvojice – hází znovu)' : ''}.` });
+    if (p.circuit < 2 && !p.rerollUsed) { g.pending = { type: 'reroll', p: i, dice }; return; }
+    continueMove(g, out, i);
+  }
+  function rerollChoice(g, i, again) {
+    const out = [];
+    if (!g.pending || g.pending.type !== 'reroll' || g.pending.p !== i) return { ok: false, out };
+    if (again) {
+      P(g, i).rerollUsed = true;
+      g.move.rolls--;
+      ev(g, out, { t: 'msg', text: `${P(g, i).name} využívá jednorázové přehození.` });
+      const p = P(g, i), n = g.move.n;
+      const dice = Array.from({ length: n }, () => rnd(6));
+      const dbl = n === 2 && dice[0] === dice[1];
+      g.move.dice = dice; g.move.dbl = dbl; g.move.rolls++; g.lastRoll = { p: i, dice };
+      g.move.left = dice.reduce((a, b) => a + b, 0); g.move.total = g.move.left;
+      ev(g, out, { t: 'dice', p: i, dice, dbl, text: `${p.name} hází znovu: ${dice.join(' + ')} = ${g.move.left}${dbl ? ' (dvojice)' : ''}.` });
+    }
+    continueMove(g, out, i);
+    return { ok: true, out };
+  }
+  function continueMove(g, out, i) {
+    const p = P(g, i);
+    while (g.move.left > 0 && p.alive && g.winner == null) {
+      const opts = moveOptions(g, i);
+      if (opts.length > 1) { g.pending = { type: 'dir', p: i, options: opts, left: g.move.left }; afterResolve(g, out); return; }
+      stepTo(g, out, i, opts[0]);
+      g.move.left--;
+      if (p.node === FED || p.node === BC) { g.move.left = 0; arriveBank(g, out, i, p.node); g.move.atBank = true; }
+    }
+    finishMove(g, out, i);
+  }
+  function chooseDir(g, i, to) {
+    const out = [];
+    if (!g.pending || g.pending.type !== 'dir' || g.pending.p !== i) return { ok: false, out };
+    const opt = g.pending.options.find(o => o.to === to);
+    if (!opt) return { ok: false, out };
+    const p = P(g, i);
+    stepTo(g, out, i, opt);
+    g.move.left--;
+    if (g.winner != null) return { ok: true, out };
+    if (p.alive && (p.node === FED || p.node === BC)) { g.move.left = 0; arriveBank(g, out, i, p.node); g.move.atBank = true; }
+    if (p.alive) continueMove(g, out, i); else finishMove(g, out, i);
+    return { ok: true, out };
+  }
+  function finishMove(g, out, i) {
+    const p = P(g, i);
+    if (g.winner != null) return;
+    if (!p.alive) { g.pending = { type: 'next' }; afterResolve(g, out); if (g.pending.type === 'next') endTurn(g, out); return; }
+    const atBank = g.move.atBank; g.move.atBank = false;
+    // mýtné za zastavení (platí i v bance FED – majiteli státu New York)
+    if (!atBank || p.node === FED || p.node === BC) {
+      const s = nodeState(p.node);
+      if (s) {
+        const st = g.states[s];
+        if (st.owner >= 0 && st.owner !== i && st.legal && P(g, st.owner).alive) {
+          const m = tollMult(g, st.owner, s);
+          let amt = 1000 * m;
+          let why = `Mýtné za zastavení v ${s}${multTxt(g, st.owner, s)}`;
+          if (st.label === 'special') { amt += g.move.total * 1000 * m; why += ` (Special Label: hod ${g.move.total})`; }
+          if (atBank) why = `Mýtné za zastavení v bance ${p.node === FED ? 'FED' : 'BC'} (stát ${s})${multTxt(g, st.owner, s)}`;
+          pay(g, out, i, st.owner, amt, why);
+        }
+      }
+    }
+    if (!atBank) {
+      const b = canBuyState(g, i);
+      if (b && p.alive) { g.pending = { type: 'buy', p: i, state: b.state, price: b.price }; afterResolve(g, out); return; }
+    }
+    afterStop(g, out, i);
+  }
+  function afterStop(g, out, i) {
+    const p = P(g, i);
+    g.pending = { type: 'next' };
+    afterResolve(g, out);
+    if (g.pending.type === 'debt') return;
+    if (p.alive && g.move && g.move.dbl && g.move.rolls < 10) { doRoll(g, out, i); return; }
+    endTurn(g, out);
+  }
+  function buyChoice(g, i, yes) {
+    const out = [];
+    if (!g.pending || g.pending.type !== 'buy' || g.pending.p !== i) return { ok: false, out };
+    if (yes) { if (!buyState(g, out, i, g.pending.state)) return { ok: false, out, err: 'Nemáte dost peněz.' }; }
+    afterStop(g, out, i);
+    return { ok: true, out };
+  }
+  function debtSell(g, i, kind, id) {
+    const r = sell(g, i, kind, id);
+    if (r.ok && g.pending.type === 'debt' && g.pending.p === i && debtOf(g, i) === 0) resumeAfterDebt(g, r.out);
+    else if (g.pending.type === 'debt') g.pending.amt = debtOf(g, i);
+    return r;
+  }
+  function bankrupt(g, i) {
+    const out = [];
+    eliminate(g, out, i, `${P(g, i).name} zbankrotoval a končí ve hře.`);
+    resumeAfterDebt(g, out);
+    return { ok: true, out };
+  }
+  function resumeAfterDebt(g, out) {
+    if (g.winner != null) return;
+    const resume = g.pending.resume;
+    const other = g.debts.find(d => P(g, d.p).alive);
+    if (other) { g.pending = { type: 'debt', p: other.p, amt: debtOf(g, other.p), resume }; return; }
+    g.pending = resume || { type: 'next' };
+    const cur = g.cur;
+    if (!P(g, cur).alive) { if (!checkWin(g, out)) endTurn(g, out); return; }
+    if (g.pending.type === 'next') {
+      if (g.move && g.move.dbl && g.move.rolls < 10) { doRoll(g, out, cur); return; }
+      endTurn(g, out);
+    }
+  }
+
+  const API = {
+    D, N, ADJ, FED, BC, COLORS, CARDS, LABELS, SH, DICE_FEE, START_CASH,
+    newGame, moveOptions, roll, rerollChoice, chooseDir, buyChoice, cardActions, cardAct, placeSNB,
+    labelCheck, placeLabel, sellables, sell, debtSell, bankrupt, debtOf, tradeValid, doTrade, assetValue,
+    ownedStates, hasCard, cardOwner, caliOwner, shareholderPct, cardPriceFor, tollMult, fmt, nodeState, bankStates,
+  };
+  if (typeof module !== 'undefined') module.exports = API;
+  root.Engine = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* IMMIGRANTS – počítačový protivník */
+(function (root) {
+  'use strict';
+  const E = root.Engine || (typeof require !== 'undefined' ? require('./engine.js') : null);
+  const { D, ADJ, FED, BC, CARDS, LABELS } = E;
+
+  // vzdálenost (v krocích) k cíli, bez už projetých úseků
+  function distMap(g, i, target, usedSet) {
+    const dist = new Array(D.nodes.length).fill(1e9);
+    dist[target] = 0;
+    const q = [target];
+    while (q.length) {
+      const u = q.shift();
+      for (const a of ADJ[u]) {
+        if (usedSet.has(a.e)) continue;
+        if (dist[a.v] > dist[u] + 1) { dist[a.v] = dist[u] + 1; q.push(a.v); }
+      }
+    }
+    return dist;
+  }
+
+  function reserve(g, i) {
+    const p = g.players[i];
+    // rezerva na mýtné podle počtu cizích legálních států
+    const foreign = Object.values(g.states).filter(s => s.owner >= 0 && s.owner !== i && s.legal).length;
+    return 4000 + foreign * 900;
+  }
+
+  function chooseDir(g, i) {
+    const p = g.players[i], pend = g.pending;
+    const target = p.trip.from === FED ? BC : FED;
+    const used = new Set(p.trip.used);
+    const mafia = E.hasCard(g, i, 'mafia');
+    let best = pend.options[0], bestScore = Infinity;
+    for (const o of pend.options) {
+      const u2 = new Set(used); u2.add(o.e);
+      const dist = distMap(g, i, target, u2);
+      let d = dist[o.to];
+      if (o.to === target) d = 0;
+      if (d >= 1e9) d = 80; // slepá cesta
+      let score = d * 1.0 + o.toll / 1500 + (o.fee > 0 ? (o.fee > (p.cash - reserve(g, i)) * 0.3 ? 1000 : o.fee / 600) : 0);
+      // levnější přes vlastní karty → fee už je 0
+      const s = D.nodes[o.to].s;
+      if (s && g.states[s].owner < 0 && D.states[s].price <= p.cash - reserve(g, i)) score -= 1.2;
+      if (mafia) {
+        const opp = g.players.filter(q => q.alive && q.id !== i).map(q => q.node);
+        if (opp.length) { const dm = Math.min(...opp.map(n => distMap(g, i, n, new Set())[o.to])); if (dm < 1e9) score += dm * 0.6 - 3; }
+      }
+      // vyhnout se Mafii
+      const mh = E.cardOwner(g, 'mafia');
+      if (mh >= 0 && mh !== i && g.players[mh].node === o.to && !(o.to === FED || o.to === BC)) score += 1000;
+      score += Math.random() * 0.3;
+      if (score < bestScore) { bestScore = score; best = o; }
+    }
+    return best.to;
+  }
+
+  function wantState(g, i, s, price) {
+    const p = g.players[i];
+    if (s === 'California') return p.cash - price >= 15000;
+    return p.cash - price >= reserve(g, i);
+  }
+
+  // akce na začátku tahu (nákupy karet, značky). Vrací pole popisů akcí, které se provedly.
+  function startActions(g, i) {
+    const p = g.players[i];
+    const outs = [];
+    const owned = E.ownedStates(g, i);
+    const legal = owned.filter(s => g.states[s].legal);
+    const tryCard = (c, act, cond, extra) => {
+      if (!cond) return;
+      const o = E.cardActions(g, i, c).find(x => x.act === act);
+      if (!o || p.cash - o.cost < reserve(g, i) + 10000) return;
+      const r = E.cardAct(g, i, c, act, extra);
+      if (r.ok) outs.push(...r.out);
+    };
+    tryCard('sea', 'buy', p.cash > 90000);
+    tryCard('air', 'buy', p.cash > 140000);
+    tryCard('chief', 'rent', legal.length >= 5 && p.cash > 110000);
+    tryCard('chief', 'buyout', p.cash > 350000);
+    tryCard('commander', 'rent', legal.length >= 10 && p.cash > 450000);
+    const othersIndep = Object.values(g.states).some(s => s.label === 'independent' && s.owner !== i && s.owner >= 0);
+    tryCard('fedhw', 'buy', othersIndep && p.cash > 250000);
+    for (const c of E.SH) tryCard(c, 'buy', p.cash > 220000);
+    if (owned.length >= 7) {
+      const cand = owned.filter(s => s !== 'New York' && s !== 'California').sort((a, b) => traffic(b) - traffic(a));
+      if (cand.length) tryCard('snb', 'buy', p.cash > 150000, { state: cand[0] });
+    }
+    if (p.node === FED && p.cash > 900000 && g.players.filter(q => q.alive).length > 1) tryCard('mafia', 'rent', true);
+    // značky
+    if (p.cash > 70000) {
+      const cand = legal.filter(s => !g.states[s].label).sort((a, b) => traffic(b) - traffic(a));
+      for (const s of cand.slice(0, 2)) {
+        const type = p.cash > 160000 && traffic(s) >= 3 ? 'special' : 'double';
+        if (p.cash - LABELS[type].price < 50000) break;
+        const r = E.placeLabel(g, i, type, s);
+        if (r.ok) outs.push(...r.out);
+      }
+    }
+    return outs;
+  }
+  const TRAFFIC = {};
+  D.edges.forEach(([a, b]) => { [a, b].forEach(n => { const s = D.nodes[n].s; if (s) TRAFFIC[s] = (TRAFFIC[s] || 0) + 1; }); });
+  function traffic(s) { return TRAFFIC[s] || 0; }
+
+  function settleDebt(g, i) {
+    // prodávej nejméně výnosné věci první
+    const items = E.sellables(g, i).sort((a, b) => {
+      const va = a.kind === 'state' ? (D.states[a.id].fed + D.states[a.id].bc) / Math.max(1, a.value) : 0.01;
+      const vb = b.kind === 'state' ? (D.states[b.id].fed + D.states[b.id].bc) / Math.max(1, b.value) : 0.01;
+      return va - vb;
+    });
+    if (!items.length) return E.bankrupt(g, i);
+    return E.debtSell(g, i, items[0].kind, items[0].id);
+  }
+
+  // jeden krok AI podle g.pending
+  function act(g) {
+    const pd = g.pending;
+    if (!pd) return null;
+    const i = pd.p;
+    switch (pd.type) {
+      case 'start': {
+        const pre = startActions(g, i);
+        const r = E.roll(g, i, 2);
+        r.out = pre.concat(r.out);
+        return r;
+      }
+      case 'reroll': {
+        const sum = pd.dice.reduce((a, b) => a + b, 0);
+        return E.rerollChoice(g, i, sum <= 4);
+      }
+      case 'dir': return E.chooseDir(g, i, chooseDir(g, i));
+      case 'buy': return E.buyChoice(g, i, wantState(g, i, pd.state, pd.price));
+      case 'debt': return settleDebt(g, i);
+      default: return null;
+    }
+  }
+
+  function evalTrade(g, t) {
+    // t.b je AI: přijme, když dostane víc, než dává
+    const get = E.assetValue(g, t.give), give = E.assetValue(g, t.get);
+    return get >= give * 1.15 && E.tradeValid(g, t);
+  }
+
+  const AI = { act, evalTrade, startActions };
+  if (typeof module !== 'undefined') module.exports = AI;
+  root.AI = AI;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* IMMIGRANTS – mobilní rozhraní */
+(function () {
+  'use strict';
+  const E = window.Engine, AI = window.AI, D = E.D;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const h = (tag, attrs, ...kids) => {
+    const el = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else if (k === 'html') el.innerHTML = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    kids.flat().forEach(c => { if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(c)); });
+    return el;
+  };
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs) => { const el = document.createElementNS(SVGNS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+  const fmt = E.fmt;
+  const COLOR = Object.fromEntries(E.COLORS.map(c => [c.id, c.hex]));
+  const LIGHT = { yellow: 1, white: 1 };
+  const SAVE_KEY = 'immigrants-save-v1';
+
+  // obrázek desky: 1 jednotka trasy = 1,4 px, posun výřezu
+  const IMG = { w: 3925, h: 2426, s: 1.4, ox: 0.41, oy: 28.8 };
+  const px = n => (D.nodes[n].x - IMG.ox) * IMG.s;
+  const py = n => (D.nodes[n].y - IMG.oy) * IMG.s;
+  const lx = s => (D.states[s].lx - IMG.ox) * IMG.s;
+  const ly = s => (D.states[s].ly - IMG.oy) * IMG.s;
+
+  let G = null;          // stav hry
+  let busy = false;      // běží animace
+  let fast = false;      // rychlé tahy počítače
+  let diceN = 2;
+  let lastTrail = [];    // cesta posledního tahu
+  let trailPlayer = -1;
+
+  // ============ pomocné ============
+  const pl = i => G.players[i];
+  const pname = i => i < 0 ? 'Banka' : pl(i).name;
+  const isHuman = i => i >= 0 && !pl(i).ai;
+  const sleep = ms => new Promise(r => setTimeout(r, fast ? ms * 0.35 : ms));
+  function starSVG(color, size, hollow) {
+    const c = COLOR[color] || color;
+    const pts = [];
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? 4.2 : 10.2, a = -Math.PI / 2 + k * Math.PI / 5; pts.push((12 + r * Math.cos(a)).toFixed(2) + ',' + (12 + r * Math.sin(a)).toFixed(2)); }
+    return `<svg class="star-badge" viewBox="0 0 24 24" width="${size || 26}" height="${size || 26}" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${hollow ? '#d9d4c7' : '#fff'}" stroke="#1d1d1f" stroke-width="1.4"/><polygon points="${pts.join(' ')}" fill="${hollow ? 'none' : c}" stroke="${hollow ? c : '#1d1d1f'}" stroke-width="${hollow ? 2 : 1}"/></svg>`;
+  }
+  function billsFor(amount, max) {
+    const notes = [10000, 5000, 2000, 1000, 500], res = [];
+    let a = Math.max(0, amount);
+    for (const n of notes) { while (a >= n && res.length < (max || 9)) { res.push(n); a -= n; } }
+    return res;
+  }
+  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) { /* bez úložiště */ } }
+  function loadSave() { try { const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* nic */ } }
+
+  // ============ mapa: posun a zoom ============
+  const view = { s: 0.1, tx: 0, ty: 0, min: 0.05, max: 1.2 };
+  let wrap, world, overlay;
+  function applyView() {
+    world.style.transform = `translate(${view.tx}px,${view.ty}px) scale(${view.s})`;
+    sizeOverlay();
+  }
+  function clampView() {
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const w = IMG.w * view.s, hh = IMG.h * view.s;
+    const mx = Math.min(60, W * 0.12), my = Math.min(60, H * 0.12);
+    view.tx = w < W ? (W - w) / 2 : Math.min(mx, Math.max(W - w - mx, view.tx));
+    view.ty = hh < H ? (H - hh) / 2 : Math.min(my, Math.max(H - hh - my, view.ty));
+  }
+  function fitView() {
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    view.min = Math.min(W / IMG.w, H / IMG.h);
+    view.s = view.min; clampView(); applyView();
+  }
+  function coverScale() { return Math.max(wrap.clientWidth / IMG.w, wrap.clientHeight / IMG.h); }
+  function showNode(n) { animateTo(Math.max(view.s, Math.min(coverScale(), 0.4)), px(n), py(n), 380); }
+  function zoomAt(f, cx, cy) {
+    const ns = Math.max(view.min, Math.min(view.max, view.s * f));
+    const k = ns / view.s;
+    view.tx = cx - (cx - view.tx) * k; view.ty = cy - (cy - view.ty) * k; view.s = ns;
+    clampView(); applyView();
+  }
+  let anim = null;
+  function animateTo(s, cxImg, cyImg, ms) {
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    s = Math.max(view.min, Math.min(view.max, s));
+    const target = { s, tx: W / 2 - cxImg * s, ty: H / 2 - cyImg * s };
+    const from = { ...view }, t0 = performance.now(), dur = fast ? 150 : (ms || 420);
+    cancelAnimationFrame(anim);
+    const stepf = t => {
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      view.s = from.s + (target.s - from.s) * e; view.tx = from.tx + (target.tx - from.tx) * e; view.ty = from.ty + (target.ty - from.ty) * e;
+      if (k >= 1) clampView();
+      applyView();
+      if (k < 1) anim = requestAnimationFrame(stepf);
+    };
+    anim = requestAnimationFrame(stepf);
+  }
+  function focusNodes(nodes, minS) {
+    const xs = nodes.map(px), ys = nodes.map(py);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const pad = 70;
+    let s = Math.min((W - pad * 2) / Math.max(60, x1 - x0), (H - pad * 2) / Math.max(60, y1 - y0));
+    s = Math.min(s, 0.55); s = Math.max(s, minS || view.min);
+    animateTo(s, (x0 + x1) / 2, (y0 + y1) / 2);
+  }
+  function followNode(n) {
+    if (view.s < view.min * 1.6) return;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const x = px(n) * view.s + view.tx, y = py(n) * view.s + view.ty;
+    if (x < W * 0.18 || x > W * 0.82 || y < H * 0.18 || y > H * 0.82) animateTo(view.s, px(n), py(n), 260);
+  }
+  let dragMoved = false;
+  function setupPanZoom() {
+    const pts = new Map();
+    let last = null, pinch = null;
+    wrap.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      dragMoved = false; cancelAnimationFrame(anim);
+      if (pts.size === 1) last = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY };
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) }; }
+    });
+    window.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const r = wrap.getBoundingClientRect();
+      if (pts.size === 2 && pinch) {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        zoomAt(d / pinch.d, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+        pinch.d = d; dragMoved = true;
+      } else if (pts.size === 1 && last) {
+        const dx = e.clientX - last.x, dy = e.clientY - last.y;
+        if (Math.abs(e.clientX - last.sx) + Math.abs(e.clientY - last.sy) > 7) dragMoved = true;
+        if (dragMoved) { view.tx += dx; view.ty += dy; clampView(); applyView(); }
+        last.x = e.clientX; last.y = e.clientY;
+      }
+    });
+    const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 1) { const [a] = [...pts.values()]; last = { x: a.x, y: a.y, sx: a.x, sy: a.y }; } };
+    window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    wrap.addEventListener('click', e => { if (dragMoved) { e.stopPropagation(); e.preventDefault(); } }, true);
+    wrap.addEventListener('wheel', e => { e.preventDefault(); const r = wrap.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    let lastTap = 0;
+    wrap.addEventListener('pointerup', e => {
+      if (dragMoved) return;
+      const now = Date.now();
+      if (now - lastTap < 300) { const r = wrap.getBoundingClientRect(); zoomAt(1.8, e.clientX - r.left, e.clientY - r.top); lastTap = 0; } else lastTap = now;
+    });
+    window.addEventListener('resize', () => { const k = view.s / view.min; fitView(); if (k > 1.01) zoomAt(k, wrap.clientWidth / 2, wrap.clientHeight / 2); });
+  }
+
+  // ============ překryv mapy ============
+  // velikosti v obrazovkových px → přepočet podle zoomu
+  const scr = v => v / view.s;
+  function sizeOverlay() {
+    if (!overlay) return;
+    const km = Math.max(1, scr(8) / 16), kp = Math.max(1, scr(24) / 40), ko = Math.max(1, scr(19) / 30);
+    overlay.querySelectorAll('.mk').forEach(el => el.setAttribute('transform', `translate(${el.dataset.x},${el.dataset.y}) scale(${km})`));
+    overlay.querySelectorAll('.pawn').forEach(el => el.setAttribute('transform', `translate(${el.dataset.x},${el.dataset.y}) scale(${kp})`));
+    overlay.querySelectorAll('.opt').forEach(el => el.setAttribute('transform', `translate(${el.dataset.x},${el.dataset.y}) scale(${ko})`));
+    overlay.querySelectorAll('.trail').forEach((el, k) => el.setAttribute('stroke-width', Math.max(k ? 7 : 11, scr(k ? 3 : 5))));
+  }
+  function buildOverlay() {
+    overlay.innerHTML = '';
+    overlay.setAttribute('viewBox', `0 0 ${IMG.w} ${IMG.h}`);
+    overlay.setAttribute('width', IMG.w); overlay.setAttribute('height', IMG.h);
+    overlay.append(sv('g', { id: 'g-trail' }), sv('g', { id: 'g-marks' }), sv('g', { id: 'g-opts' }), sv('g', { id: 'g-pawns' }));
+  }
+  function starPoly(r1, r2) {
+    const pts = [];
+    for (let k = 0; k < 10; k++) { const r = k % 2 ? r2 : r1, a = -Math.PI / 2 + k * Math.PI / 5; pts.push((r * Math.cos(a)).toFixed(1) + ',' + (r * Math.sin(a)).toFixed(1)); }
+    return pts.join(' ');
+  }
+  const LABEL_ICON = { double: '2×', special: '⚄', independent: '⛔' };
+  function drawMarks() {
+    const g = $('#g-marks'); g.innerHTML = '';
+    Object.keys(G.states).forEach(s => {
+      const st = G.states[s];
+      if (st.owner < 0) return;
+      const c = COLOR[pl(st.owner).color];
+      const m = sv('g', { class: 'mk' });
+      m.dataset.x = lx(s); m.dataset.y = ly(s) - 30;
+      m.append(sv('circle', { r: 16, fill: st.legal ? '#fff' : '#d9d4c7', stroke: '#1d1d1f', 'stroke-width': 2 }));
+      m.append(sv('polygon', { points: starPoly(14.5, 6), fill: st.legal ? c : 'none', stroke: st.legal ? '#1d1d1f' : c, 'stroke-width': st.legal ? 1.2 : 3 }));
+      if (st.label) {
+        const b = sv('g', { transform: 'translate(17,-14)' });
+        b.append(sv('rect', { x: -10, y: -9, width: 22, height: 17, rx: 4, fill: st.label === 'independent' ? '#c62420' : '#14203b' }));
+        const t = sv('text', { x: 1, y: 4, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: '#fff', 'font-family': 'Barlow Condensed, sans-serif' });
+        t.textContent = LABEL_ICON[st.label]; b.append(t); m.append(b);
+      }
+      if (G.snb === s) {
+        const b = sv('g', { transform: 'translate(-19,-14)' });
+        b.append(sv('rect', { x: -11, y: -9, width: 22, height: 17, rx: 4, fill: '#b88a2c' }));
+        const t = sv('text', { x: 0, y: 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#fff', 'font-family': 'Barlow Condensed, sans-serif' });
+        t.textContent = 'SNB'; b.append(t); m.append(b);
+      }
+      m.addEventListener('click', () => stateInfo(s));
+      g.append(m);
+    });
+    sizeOverlay();
+  }
+  function drawPawns() {
+    const g = $('#g-pawns'); g.innerHTML = '';
+    const at = {};
+    G.players.forEach(p => { if (p.alive) (at[p.node] = at[p.node] || []).push(p.id); });
+    Object.keys(at).forEach(n => {
+      const ids = at[n];
+      ids.forEach((id, k) => {
+        const p = pl(id);
+        const off = ids.length > 1 ? 14 * Math.max(1, scr(24) / 40) : 0, a = k / ids.length * Math.PI * 2 - Math.PI / 2;
+        const el = sv('g', { class: 'pawn' });
+        el.dataset.x = px(+n) + Math.cos(a) * off; el.dataset.y = py(+n) + Math.sin(a) * off;
+        el.append(sv('ellipse', { cx: 0, cy: 14, rx: 13, ry: 5, fill: 'rgba(0,0,0,.35)' }));
+        el.append(sv('path', { d: 'M0,-26 C9,-26 13,-19 13,-12 C13,-4 6,1 6,6 L9,13 L-9,13 L-6,6 C-6,1 -13,-4 -13,-12 C-13,-19 -9,-26 0,-26 Z', fill: COLOR[p.color], stroke: p.id === G.cur ? '#ffd66b' : '#1d1d1f', 'stroke-width': p.id === G.cur ? 4 : 2 }));
+        if (E.hasCard(G, id, 'mafia')) el.append(sv('circle', { cx: 0, cy: -12, r: 5, fill: '#1d1d1f' }));
+        g.append(el);
+      });
+    });
+    sizeOverlay();
+  }
+  function drawTrail() {
+    const g = $('#g-trail'); g.innerHTML = '';
+    if (lastTrail.length < 2 || trailPlayer < 0) return;
+    const c = COLOR[pl(trailPlayer).color];
+    g.append(sv('polyline', { class: 'trail', points: lastTrail.map(n => px(n) + ',' + py(n)).join(' '), stroke: '#14203b', 'stroke-width': 11, opacity: .35 }));
+    g.append(sv('polyline', { class: 'trail', points: lastTrail.map(n => px(n) + ',' + py(n)).join(' '), stroke: LIGHT[pl(trailPlayer).color] ? '#d4a800' : c, 'stroke-width': 7, 'stroke-dasharray': '14 10' }));
+    sizeOverlay();
+  }
+  function drawOptions() {
+    const g = $('#g-opts'); g.innerHTML = '';
+    const pd = G.pending;
+    if (!pd || pd.type !== 'dir' || !isHuman(pd.p) || busy) return;
+    pd.options.forEach((o, k) => {
+      const el = sv('g', { class: 'opt' });
+      el.dataset.x = px(o.to); el.dataset.y = py(o.to);
+      const ring = sv('circle', { r: 30, class: 'opt-ring', 'stroke-width': 5 });
+      el.append(ring);
+      const t = sv('text', { class: 'opt-txt', x: 0, y: 9, 'text-anchor': 'middle', 'font-size': 26, 'stroke-width': 5 });
+      t.textContent = k + 1; el.append(t);
+      el.addEventListener('click', () => doAction(() => E.chooseDir(G, pd.p, o.to)));
+      g.append(el);
+    });
+    sizeOverlay();
+  }
+
+  // ============ horní pás ============
+  function renderChips() {
+    const c = $('#chips'); c.innerHTML = '';
+    G.players.forEach(p => {
+      const debt = E.debtOf(G, p.id);
+      const el = h('div', { class: 'chip' + (p.id === G.cur ? ' cur' : '') + (p.alive ? '' : ' dead') + (debt ? ' debt' : ''), 'data-p': p.id },
+        h('span', { html: starSVG(p.color, 26) }),
+        h('span', { class: 'meta' }, h('span', { class: 'nm' }, p.name + (p.ai ? ' ⚙' : '')), h('span', { class: 'cs num' }, debt ? 'dluh ' + fmt(debt) : fmt(p.cash))));
+      el.addEventListener('click', () => playerInfo(p.id));
+      c.append(el);
+    });
+    const cur = c.querySelector('.chip.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    renderLastRoll();
+  }
+  function renderLastRoll(rolling) {
+    const box = $('#lastroll'); box.innerHTML = '';
+    const lr = G && G.lastRoll;
+    if (!lr) { box.hidden = true; return; }
+    box.hidden = false;
+    box.style.setProperty('--pc', LIGHT[pl(lr.p).color] ? '#c9a400' : COLOR[pl(lr.p).color]);
+    const sum = lr.dice.reduce((a, b) => a + b, 0);
+    box.setAttribute('aria-label', `Poslední hod: ${pl(lr.p).name} ${lr.dice.join(' + ')} = ${sum}`);
+    box.append(h('span', { class: 'who' }, pl(lr.p).name));
+    lr.dice.forEach(v => box.append(dieEl(v, rolling)));
+    box.append(h('span', { class: 'sum num' }, '= ' + sum));
+    placeLastRoll();
+  }
+  // okénko s hodem stojí pod žetonem hráče, který házel
+  function placeLastRoll() {
+    const box = $('#lastroll'); if (!box || box.hidden || !G || !G.lastRoll) return;
+    const chip = document.querySelector(`.chip[data-p="${G.lastRoll.p}"]`);
+    if (!chip) return;
+    const wr = wrap.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+    const W = wrap.clientWidth, bw = box.offsetWidth;
+    const cx = cr.left + cr.width / 2 - wr.left;
+    const left = Math.max(8, Math.min(W - bw - 8, cr.left - wr.left));
+    box.style.left = left + 'px';
+    box.style.setProperty('--ax', Math.max(12, Math.min(bw - 12, cx - left)) + 'px');
+  }
+  // ============ dolní panel ============
+  function dieEl(v, rolling) {
+    const on = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }[v];
+    const d = h('div', { class: 'die' + (rolling ? ' roll' : ''), 'aria-label': 'Kostka ' + v });
+    for (let k = 0; k < 9; k++) d.append(h('i', { class: on.includes(k) ? 'on' : '' }));
+    return d;
+  }
+  function walletEl(i) {
+    const p = pl(i);
+    const b = h('div', { class: 'bills' });
+    billsFor(p.cash, 9).forEach((n, k) => b.append(h('img', { src: `img/bill-${n}.jpg`, alt: '', style: `left:${k * 16}px; transform: rotate(${(k % 3 - 1) * 2}deg)` })));
+    return h('div', { class: 'wallet' }, h('span', { class: 'amt num' }, fmt(p.cash)), b);
+  }
+  function header(i, title, sub) {
+    return h('div', { class: 'ph' }, h('span', { html: starSVG(pl(i).color, 34) }), h('div', null, h('h2', null, title), sub ? h('div', { class: 'sub' }, sub) : null));
+  }
+  let panelMini = false;
+  function addToggle(P) {
+    P.classList.toggle('mini', panelMini);
+    P.append(h('button', { class: 'ptoggle', 'aria-label': panelMini ? 'Rozbalit panel' : 'Sbalit panel', onclick: () => { panelMini = !panelMini; renderPanel(); } }, panelMini ? '+' : '–'));
+  }
+  function renderPanel() {
+    const P = $('#panel'); P.innerHTML = '';
+    queueMicrotask(() => { if (!P.querySelector('.ptoggle')) addToggle(P); });
+    $('#steps').hidden = true;
+    const pd = G.pending;
+    if (!pd) return;
+    if (pd.type === 'over') {
+      const w = pl(pd.winner);
+      P.append(h('div', { class: 'winner' }, h('span', { html: starSVG(w.color, 64) }), h('h2', null, `${w.name} vyhrává!`),
+        h('p', { class: 'note' }, `Konečná hotovost ${fmt(w.cash)}, ${E.ownedStates(G, w.id).length} států.`),
+        h('div', { class: 'row' }, h('button', { class: 'btn red big', onclick: () => { clearSave(); showSetup(); } }, 'Nová hra'))));
+      return;
+    }
+    const i = pd.p;
+    if (!isHuman(i)) {
+      P.append(header(i, `Hraje ${pl(i).name}`, 'Počítač'), h('div', { class: 'thinking' }, h('div', { class: 'spinner' }), h('span', null, describePending(pd))),
+        h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn soft', onclick: () => { fast = !fast; renderPanel(); } }, fast ? 'Normální rychlost' : 'Zrychlit tahy počítače')));
+      return;
+    }
+    const p = pl(i);
+    if (pd.type === 'start') {
+      const trip = p.trip.from === E.FED ? 'Cíl: banka BC v Sacramentu' : p.trip.from === E.BC ? 'Cíl: banka FED v New Yorku' : 'Na cestě do banky';
+      P.append(header(i, `Na tahu: ${p.name}`, `Kolo ${G.turn} · ${trip}`), walletEl(i));
+      const sel = h('div', { class: 'dicesel', role: 'group', 'aria-label': 'Počet kostek' });
+      [1, 2, 3, 4].forEach(n => {
+        const fee = E.DICE_FEE[n];
+        sel.append(h('button', { 'aria-pressed': String(diceN === n), disabled: fee > p.cash, onclick: () => { diceN = n; renderPanel(); } }, h('b', null, n + ' ' + (n === 1 ? 'kostka' : 'kostky')), h('span', null, fee ? fmt(fee) : 'zdarma')));
+      });
+      P.append(sel);
+      P.append(h('div', { class: 'row' }, h('button', { class: 'btn red big', onclick: () => doAction(() => E.roll(G, i, diceN)) }, 'Hodit kostkami')));
+      P.append(h('div', { class: 'row', style: 'margin-top:8px' },
+        h('button', { class: 'btn soft', onclick: () => openShop(i) }, 'Karty a značky'),
+        h('button', { class: 'btn soft', onclick: () => openAssets(i) }, 'Majetek'),
+        h('button', { class: 'btn soft', onclick: () => openTrade(i) }, 'Obchod')));
+      if (E.hasCard(G, i, 'snb') && !G.snb) P.append(h('p', { class: 'err' }, 'Vaše Second National Bank nemá umístění – umístěte ji v nabídce Karty a značky.'));
+    } else if (pd.type === 'reroll') {
+      P.append(header(i, 'Váš hod', 'Během prvního okruhu FED → BC → FED můžete jednou hod přehodit.'));
+      P.append(h('div', { class: 'dice' }, pd.dice.map(v => dieEl(v))));
+      P.append(h('div', { class: 'row' },
+        h('button', { class: 'btn big', onclick: () => doAction(() => E.rerollChoice(G, i, false)) }, `Jet ${pd.dice.reduce((a, b) => a + b, 0)} polí`),
+        h('button', { class: 'btn ghost big', onclick: () => doAction(() => E.rerollChoice(G, i, true)) }, 'Přehodit (1×)')));
+    } else if (pd.type === 'dir') {
+      $('#steps').hidden = false; $('#steps').innerHTML = `<b class="num">${pd.left}</b>${pd.left === 1 ? 'krok' : pd.left < 5 ? 'kroky' : 'kroků'}`;
+      P.append(header(i, 'Kudy pojedete?', 'Klepněte na číslo na mapě nebo vyberte zde.'));
+      const L = h('div', { class: 'optlist' });
+      pd.options.forEach((o, k) => {
+        const n = D.nodes[o.to];
+        const where = n.t === 'plane' ? 'Letecká linka' : n.t === 'ship' ? 'Lodní linka' : n.t === 'star' ? 'Zkratka' : n.t === 'canada' ? 'Kanadská dálnice' : o.to === E.FED ? 'Banka FED – New York' : o.to === E.BC ? 'Banka BC – Sacramento' : (n.s || '');
+        const dirTxt = compass(pl(i).node, o.to);
+        const cost = o.fee + o.toll;
+        const costTxt = cost ? (o.fee ? `jízdenka ${fmt(o.fee)}` : '') + (o.fee && o.toll ? ' + ' : '') + (o.toll ? `mýtné ${fmt(o.toll)}` : '') : 'zdarma';
+        L.append(h('button', { onclick: () => doAction(() => E.chooseDir(G, i, o.to)) }, h('span', { class: 'k' }, k + 1), h('span', null, `${dirTxt} · ${where}`), h('span', { class: 'cost' + (cost ? '' : ' free') }, costTxt)));
+      });
+      P.append(L);
+    } else if (pd.type === 'buy') {
+      const s = pd.state, ds = D.states[s];
+      P.append(header(i, s === 'Washington D.C.' ? 'Washington D.C. je zdarma' : `Koupit ${s}?`, `Hotovost ${fmt(p.cash)}`));
+      P.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `img/cards/${ds.img}.jpg`, alt: 'Karta ' + s }),
+        h('dl', { class: 'kv', style: 'flex:1' }, h('dt', null, 'Cena'), h('dd', { class: 'num' }, ds.price ? fmt(ds.price) : 'zdarma'),
+          h('dt', null, 'Výplata FED'), h('dd', { class: 'num' }, fmt(ds.fed)), h('dt', null, s === 'California' ? 'BC' : 'Výplata BC'), h('dd', { class: 'num' }, s === 'California' ? 'vyplácíte ostatní' : fmt(ds.bc)),
+          s === 'California' ? [h('dt', null, 'Navíc'), h('dd', null, 'zkratky zdarma, jízdné vám')] : null)));
+      P.append(h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn red big', disabled: p.cash < pd.price, onclick: () => doAction(() => E.buyChoice(G, i, true)) }, pd.price ? 'Koupit' : 'Získat'),
+        h('button', { class: 'btn ghost big', onclick: () => doAction(() => E.buyChoice(G, i, false)) }, 'Nekupovat')));
+      if (p.cash < pd.price) P.append(h('p', { class: 'err' }, 'Na koupi nemáte dost peněz.'));
+    } else if (pd.type === 'debt') {
+      P.append(header(i, `${p.name} dluží ${fmt(pd.amt)}`, 'Prodejte majetek bance za nákupní cenu, nebo vyhlaste bankrot.'));
+      const L = h('div', { class: 'optlist' });
+      E.sellables(G, i).forEach(it => L.append(h('button', { onclick: () => doAction(() => E.debtSell(G, i, it.kind, it.id)) }, h('span', null, it.name), h('span', { class: 'cost free' }, '+' + fmt(it.value)))));
+      P.append(L);
+      P.append(h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn red', onclick: () => confirmBox(`Opravdu vyhlásit bankrot? ${p.name} skončí ve hře.`, 'Vyhlásit bankrot', () => doAction(() => E.bankrupt(G, i))) }, 'Vyhlásit bankrot')));
+    }
+  }
+  function compass(a, b) {
+    const dx = D.nodes[b].x - D.nodes[a].x, dy = D.nodes[b].y - D.nodes[a].y;
+    const ang = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
+    return ['východ', 'severovýchod', 'sever', 'severozápad', 'západ', 'jihozápad', 'jih', 'jihovýchod'][Math.round(ang / 45) % 8];
+  }
+  function describePending(pd) {
+    return { start: 'Připravuje tah…', reroll: 'Rozhoduje o hodu…', dir: 'Vybírá směr…', buy: 'Zvažuje nákup…', debt: 'Řeší dluh…' }[pd.type] || '…';
+  }
+
+  // ============ přehrání událostí ============
+  function chipRect(i) {
+    const el = i < 0 ? $('#menuBtn') : document.querySelector(`.chip[data-p="${i}"]`);
+    return el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: 40, width: 0, height: 0 };
+  }
+  function flyBills(from, to, amt) {
+    if (!amt || fast) return;
+    const a = chipRect(from), b = chipRect(to);
+    billsFor(amt, 3).forEach((n, k) => {
+      const img = h('img', { class: 'flybill', src: `img/bill-${n}.jpg`, alt: '' });
+      document.body.append(img);
+      const x0 = a.left + a.width / 2 - 35, y0 = a.top + a.height / 2, x1 = b.left + b.width / 2 - 35, y1 = b.top + b.height / 2;
+      const an = img.animate([{ transform: `translate(${x0}px,${y0}px) rotate(-8deg)`, opacity: 0 }, { opacity: 1, offset: .15 }, { transform: `translate(${(x0 + x1) / 2}px,${Math.max(y0, y1) + 70}px) rotate(6deg)`, offset: .5 }, { transform: `translate(${x1}px,${y1}px) rotate(0)`, opacity: .2 }], { duration: 700, delay: k * 90, easing: 'ease-in-out', fill: 'forwards' });
+      an.onfinish = () => img.remove();
+    });
+  }
+  function toast(text, cls, ms) {
+    const t = h('div', { class: 'toast ' + (cls || '') }, text);
+    const box = $('#toasts');
+    box.append(t);
+    while (box.children.length > 4) box.firstChild.remove();
+    setTimeout(() => t.remove(), (fast ? 0.6 : 1) * (ms || 2600));
+  }
+  async function play(out) {
+    busy = true; drawOptions();
+    if (out.some(e => e.t === 'move' || e.t === 'dice')) {
+      $('#steps').hidden = true;
+      const i = G.cur, P = $('#panel'); P.innerHTML = '';
+      const d = out.find(e => e.t === 'dice');
+      P.append(header(i, isHuman(i) ? `${pl(i).name} jede…` : `Hraje ${pl(i).name}`, d ? `Hod ${d.dice.join(' + ')} = ${d.dice.reduce((a, b) => a + b, 0)}` : ''));
+      if (d) { P.append(h('div', { class: 'dice' }, d.dice.map(v => dieEl(v, true)))); renderLastRoll(true); }
+    }
+    let moved = false;
+    for (const e of out) {
+      if (e.t === 'move') {
+        if (trailPlayer !== e.p) { trailPlayer = e.p; lastTrail = [e.from]; }
+        lastTrail.push(e.to);
+        drawPawns(); drawTrail(); followNode(e.to); moved = true;
+        await sleep(isHuman(e.p) ? 170 : 210);
+      } else if (e.t === 'dice') {
+        toast(e.text, '', 2400);
+        if (!isHuman(e.p)) showNode(pl(e.p).node);
+        await sleep(450);
+        if (trailPlayer === e.p) lastTrail = [pl(e.p).node];
+      } else if (e.t === 'pay') {
+        if (e.silent || !e.amt) { if (e.owed) toast(`${pname(e.from)} nemá na platbu, dluží ${fmt(e.owed)}.`, 'minus'); continue; }
+        const txt = e.to < 0 ? `${pname(e.from)} platí ${fmt(e.amt)} · ${e.why}` : e.from < 0 ? `${pname(e.to)} +${fmt(e.amt)} · ${e.why}` : `${pname(e.from)} → ${pname(e.to)}: ${fmt(e.amt)} · ${e.why}`;
+        toast(txt, e.from < 0 ? 'plus' : 'minus');
+        if (e.owed) toast(`${pname(e.from)} nemá na platbu, dluží ${fmt(e.owed)}.`, 'minus');
+        renderChips(); flyBills(e.from, e.to, e.amt);
+        await sleep(300);
+      } else if (e.t === 'bank') {
+        if (e.items && e.items.length && isHuman(e.p)) await bankSheet(e);
+        else toast(e.text, 'plus', 3200);
+        await sleep(200);
+      } else if (e.t === 'elim') {
+        drawPawns(); drawMarks(); renderChips();
+        await alertBox(e.text);
+      } else if (e.t === 'win') {
+        toast(e.text, 'plus', 5000);
+      } else if (e.t === 'turn') {
+        if (moved) await sleep(350);
+        lastTrail = []; trailPlayer = -1; drawTrail();
+      } else if (e.text) {
+        toast(e.text, e.t === 'buy' || e.t === 'card' || e.t === 'label' ? '' : '', 2800);
+        drawMarks(); renderChips();
+        await sleep(e.t === 'buy' ? 380 : 200);
+      }
+    }
+    busy = false;
+  }
+
+  // ============ hlavní smyčka ============
+  async function doAction(fn) {
+    if (busy) return;
+    const r = fn();
+    if (!r) return;
+    if (!r.ok) { if (r.err) toast(r.err, 'minus'); return; }
+    await play(r.out || []);
+    refresh();
+  }
+  function refresh() {
+    save();
+    renderChips(); drawMarks(); drawPawns(); drawTrail(); renderPanel(); drawOptions();
+    const pd = G.pending;
+    if (!pd || pd.type === 'over') return;
+    if (pd.type === 'dir' && isHuman(pd.p)) focusNodes([pl(pd.p).node, ...pd.options.map(o => o.to)], view.min * 2.2);
+    if (pd.type === 'start' && isHuman(pd.p)) { diceN = 2; }
+    if (!isHuman(pd.p)) setTimeout(aiStep, fast ? 120 : 520);
+  }
+  async function aiStep() {
+    if (busy || !G.pending || G.pending.type === 'over' || isHuman(G.pending.p)) return;
+    const r = AI.act(G);
+    if (!r || !r.ok) { console.warn('AI nemůže pokračovat', G.pending, r); return; }
+    await play(r.out || []);
+    refresh();
+  }
+
+  // ============ listy ============
+  function sheet(title, build, onClose) {
+    const bg = h('div', { class: 'sheet-bg' });
+    const close = () => { bg.remove(); if (onClose) onClose(); };
+    const body = h('div', { class: 'body' });
+    const sh = h('div', { class: 'sheet', role: 'dialog', 'aria-label': title },
+      h('header', null, h('h3', null, title), h('button', { class: 'close', 'aria-label': 'Zavřít', onclick: close }, '×')), body);
+    bg.append(sh);
+    bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    document.body.append(bg);
+    build(body, close);
+    return { close, body };
+  }
+  function alertBox(text) {
+    return new Promise(res => sheet('Zpráva', (b, close) => {
+      b.append(h('p', { style: 'font-size:16px;margin:0' }, text), h('button', { class: 'btn', onclick: close }, 'Pokračovat'));
+    }, res));
+  }
+  function confirmBox(text, yes, fn) {
+    sheet('Potvrzení', (b, close) => {
+      b.append(h('p', { style: 'font-size:16px;margin:0' }, text), h('div', { class: 'row' }, h('button', { class: 'btn red', onclick: () => { close(); fn(); } }, yes), h('button', { class: 'btn ghost', onclick: close }, 'Zpět')));
+    });
+  }
+  function bankSheet(e) {
+    return new Promise(res => {
+      const names = { FED: 'Banka FED – New York', BC: 'Banka BC – Sacramento', SNB: 'Second National Bank' };
+      const s = sheet(names[e.bank], (b, close) => {
+        b.append(h('p', { class: 'note', style: 'margin:0' }, e.text));
+        const dl = h('dl', { class: 'kv' });
+        e.items.forEach(it => dl.append(h('dt', null, it.label), h('dd', { class: 'num' }, fmt(it.amt))));
+        dl.append(h('dt', { style: 'color:var(--ink);font-weight:700' }, 'Celkem'), h('dd', { class: 'num', style: 'font-size:20px;color:var(--ok)' }, fmt(e.total)));
+        b.append(dl);
+        const bl = h('div', { class: 'bills', style: 'height:48px' });
+        billsFor(e.total, 10).forEach((n, k) => { const im = h('img', { src: `img/bill-${n}.jpg`, alt: '', style: `left:${k * 22}px;height:44px` }); im.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: k * 70, fill: 'backwards' }); bl.append(im); });
+        b.append(bl, h('button', { class: 'btn', onclick: close }, 'Pokračovat'));
+      }, res);
+      if (fast) setTimeout(s.close, 1200);
+    });
+  }
+  function stateInfo(s) {
+    const st = G.states[s], ds = D.states[s];
+    sheet(s, b => {
+      b.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `img/cards/${ds.img}.jpg`, alt: 'Karta ' + s }),
+        h('dl', { class: 'kv', style: 'flex:1' },
+          h('dt', null, 'Majitel'), h('dd', null, st.owner >= 0 ? pl(st.owner).name : 'nikdo'),
+          h('dt', null, 'Stav'), h('dd', null, st.owner < 0 ? '–' : st.legal ? 'legalizován' : 'čeká na legalizaci ve FED'),
+          h('dt', null, 'Cena'), h('dd', { class: 'num' }, ds.price ? fmt(ds.price) : 'zdarma'),
+          h('dt', null, 'FED / BC'), h('dd', { class: 'num' }, fmt(ds.fed) + ' / ' + (s === 'California' ? '–' : fmt(ds.bc))),
+          h('dt', null, 'Značka'), h('dd', null, st.label ? E.LABELS[st.label].name : 'žádná'),
+          st.owner >= 0 ? [h('dt', null, 'Mýtné'), h('dd', { class: 'num' }, `${fmt(1000 * E.tollMult(G, st.owner, s))} za hranici / zastávku`)] : null)));
+      if (st.label) b.append(h('p', { class: 'note' }, E.LABELS[st.label].desc));
+    });
+  }
+  function playerInfo(i) {
+    const p = pl(i);
+    sheet(p.name, b => {
+      b.append(h('div', { class: 'ph' }, h('span', { html: starSVG(p.color, 40) }), h('div', null, h('h2', null, fmt(p.cash)), h('div', { class: 'sub' }, p.alive ? (p.ai ? 'Počítač' : 'Hráč') : 'Vyřazen'))));
+      const sts = E.ownedStates(G, i);
+      b.append(h('div', { class: 'sec' }, `Státy (${sts.length})`), h('p', { style: 'margin:0' }, sts.length ? sts.map(s => s + (G.states[s].legal ? '' : ' (nelegalizován)')).join(', ') : '—'));
+      const cs = Object.keys(G.cards).filter(c => G.cards[c].owner === i);
+      b.append(h('div', { class: 'sec' }, 'Karty'), h('p', { style: 'margin:0' }, cs.length ? cs.map(c => E.CARDS[c].name + (G.cards[c].mode === 'rent' ? ' (zápůjčka)' : '')).join(', ') : '—'));
+      b.append(h('p', { class: 'note' }, `Přehození hodu: ${p.rerollUsed ? 'využito' : p.circuit < 2 ? 'k dispozici' : 'propadlo'} · Bonus BC: ${p.bonusBC ? 'získán' : 'čeká'} · Bonus FED: ${p.bonusFED ? 'získán' : 'čeká'}`));
+      b.append(h('button', { class: 'btn soft', onclick: () => { focusNodes([p.node], 0.35); } }, 'Ukázat figurku na mapě'));
+    });
+  }
+
+  // ---------- obchod s kartami a značkami ----------
+  function openShop(i) {
+    let tab = 'cards';
+    const s = sheet('Karty a značky', (b, close) => {
+      const draw = () => {
+        b.innerHTML = '';
+        const tabs = h('div', { class: 'tabs', role: 'tablist' },
+          h('button', { role: 'tab', 'aria-selected': String(tab === 'cards'), onclick: () => { tab = 'cards'; draw(); } }, 'Speciální karty'),
+          h('button', { role: 'tab', 'aria-selected': String(tab === 'labels'), onclick: () => { tab = 'labels'; draw(); } }, 'Značky'));
+        b.append(tabs, h('p', { class: 'note', style: 'margin:0' }, `Hotovost ${fmt(pl(i).cash)}` + (E.shareholderPct(G, i) ? ` · sleva Shareholder ${E.shareholderPct(G, i)} %` : '')));
+        if (tab === 'cards') {
+          Object.keys(E.CARDS).forEach(c => {
+            const def = E.CARDS[c], cur = G.cards[c];
+            const acts = E.cardActions(G, i, c);
+            let status = 'volná';
+            if (cur) status = (cur.mode === 'rent' ? 'zapůjčil ' : 'vlastní ') + pl(cur.owner).name + (cur.deposit ? ` (jistina ${fmt(cur.deposit)})` : '');
+            const btns = h('div', { class: 'acts' });
+            acts.forEach(a => {
+              btns.append(h('button', { disabled: a.cost > pl(i).cash, onclick: () => {
+                if (c === 'snb' && a.act === 'buy') { pickState(i, 'Kam umístit Second National Bank?', E.ownedStates(G, i).filter(x => x !== 'New York' && x !== 'California'), st => { runSide(E.cardAct(G, i, c, 'buy', { state: st })); draw(); }); return; }
+                runSide(E.cardAct(G, i, c, a.act)); draw();
+              } }, `${a.label}${a.cost > 0 ? ' · ' + fmt(a.cost) : ''}`));
+            });
+            if (c === 'snb' && E.hasCard(G, i, 'snb')) btns.append(h('button', { class: 'alt', onclick: () => pickState(i, 'Kam přesunout Second National Bank?', E.ownedStates(G, i).filter(x => x !== 'New York' && x !== 'California'), st => { E.placeSNB(G, i, st); refreshSide(); draw(); }) }, G.snb ? 'Přesunout banku' : 'Umístit banku'));
+            if (c === 'mafia' && !acts.length && !cur) btns.append(h('span', { class: 'err' }, 'Lze zapůjčit jen na začátku tahu na políčku banky FED.'));
+            b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${def.img}.jpg`, alt: def.name }),
+              h('div', { class: 't' }, h('b', null, def.name), h('span', { class: 'tag' + (cur ? ' red' : '') }, status), h('p', null, def.desc), btns)));
+          });
+          b.append(h('p', { class: 'note' }, 'Kartu California koupíte zastavením na políčku ve státě California (75 000 $).'));
+        } else {
+          Object.keys(E.LABELS).forEach(t => {
+            const def = E.LABELS[t];
+            const mine = E.ownedStates(G, i).filter(s => !G.states[s].label);
+            b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${def.img}.jpg`, alt: def.name }),
+              h('div', { class: 't' }, h('b', null, def.name), h('span', { class: 'tag' }, `zbývá ${G.labelsLeft[t]} ks · ${fmt(def.price)}`), h('p', null, def.desc),
+                h('div', { class: 'acts' }, h('button', { disabled: !G.labelsLeft[t] || pl(i).cash < def.price || !mine.length, onclick: () => pickLabelState(i, t, draw) }, 'Umístit na stát')))));
+          });
+        }
+      };
+      draw();
+    });
+  }
+  function pickLabelState(i, t, done) {
+    sheet(`${E.LABELS[t].name} – vyberte stát`, (b, close) => {
+      E.ownedStates(G, i).forEach(s => {
+        const err = E.labelCheck(G, i, t, s);
+        b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `img/cards/${D.states[s].img}.jpg`, alt: '' }),
+          h('div', { class: 't' }, h('b', null, s), err ? h('span', { class: 'err' }, err) : h('div', { class: 'acts' }, h('button', { onclick: () => { runSide(E.placeLabel(G, i, t, s)); close(); done(); } }, `Umístit · ${fmt(E.LABELS[t].price)}`)))));
+      });
+    });
+  }
+  function pickState(i, title, list, fn) {
+    sheet(title, (b, close) => {
+      if (!list.length) b.append(h('p', null, 'Nemáte vhodný stát.'));
+      list.forEach(s => b.append(h('button', { class: 'btn soft', onclick: () => { close(); fn(s); } }, s)));
+    });
+  }
+  function runSide(r) {
+    if (!r.ok) { toast(r.err || 'Akci nelze provést.', 'minus'); return; }
+    (r.out || []).forEach(e => { if (e.text) toast(e.text); if (e.t === 'pay' && e.amt && !e.silent) toast(`${pname(e.to)} +${fmt(e.amt)} · ${e.why}`, 'plus'); });
+    refreshSide();
+  }
+  function refreshSide() { save(); renderChips(); drawMarks(); renderPanel(); }
+
+  // ---------- majetek ----------
+  function openAssets(i) {
+    sheet('Majetek', b => {
+      const draw = () => {
+        b.innerHTML = '';
+        b.append(walletEl(i));
+        const items = E.sellables(G, i);
+        if (!items.length) b.append(h('p', { class: 'note' }, 'Zatím nic nevlastníte. Státy kupujete zastavením na políčku ve státě.'));
+        E.ownedStates(G, i).forEach(s => {
+          const st = G.states[s], ds = D.states[s];
+          const it = items.find(x => x.kind === 'state' && x.id === s);
+          b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `img/cards/${ds.img}.jpg`, alt: '' }),
+            h('div', { class: 't' }, h('b', null, s), h('span', { class: 'tag' + (st.legal ? '' : ' red') }, st.legal ? 'legální' : 'nelegalizován'), st.label ? h('span', { class: 'tag' }, E.LABELS[st.label].name) : null,
+              h('p', null, `FED ${fmt(ds.fed)} · BC ${s === 'California' ? '–' : fmt(ds.bc)}`),
+              h('div', { class: 'acts' }, h('button', { class: 'alt', onclick: () => confirmBox(`Prodat ${it.name} bance za ${fmt(it.value)}?`, 'Prodat', () => { runSide(E.sell(G, i, 'state', s)); draw(); }) }, `Prodat bance · ${fmt(it.value)}`)))));
+        });
+        items.filter(x => x.kind === 'card').forEach(it => {
+          b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${E.CARDS[it.id].img}.jpg`, alt: '' }),
+            h('div', { class: 't' }, h('b', null, it.name), h('div', { class: 'acts' }, h('button', { class: 'alt', onclick: () => confirmBox(`${it.name}: prodat bance za ${fmt(it.value)}?`, 'Prodat', () => { runSide(E.sell(G, i, 'card', it.id)); draw(); }) }, `Prodat · ${fmt(it.value)}`)))));
+        });
+      };
+      draw();
+    });
+  }
+
+  // ---------- obchod mezi hráči ----------
+  function openTrade(i) {
+    const others = G.players.filter(p => p.alive && p.id !== i);
+    if (!others.length) return;
+    let b2 = others[0].id;
+    const sel = { give: { states: new Set(), cards: new Set(), cash: 0 }, get: { states: new Set(), cards: new Set(), cash: 0 } };
+    sheet('Obchod s hráčem', (b, close) => {
+      const draw = () => {
+        b.innerHTML = '';
+        const ps = h('select', { id: 'tradePartner', 'aria-label': 'Partner', onchange: e => { b2 = +e.target.value; sel.get = { states: new Set(), cards: new Set(), cash: 0 }; draw(); } },
+          others.map(p => h('option', { value: p.id, selected: p.id === b2 }, p.name + (p.ai ? ' (počítač)' : ''))));
+        b.append(h('label', { class: 'fl' }, 'Obchodní partner', ps));
+        const side = (who, key, title) => {
+          const box = h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('div', { class: 'sec' }, title));
+          E.ownedStates(G, who).forEach(s => {
+            const on = sel[key].states.has(s);
+            box.append(h('button', { class: 'btn ' + (on ? '' : 'soft'), style: 'min-height:38px;padding:6px 10px;font-size:15px', onclick: () => { on ? sel[key].states.delete(s) : sel[key].states.add(s); draw(); } }, (on ? '✓ ' : '') + s + (G.states[s].label ? ' + ' + E.LABELS[G.states[s].label].name : '')));
+          });
+          Object.keys(G.cards).filter(c => G.cards[c].owner === who && G.cards[c].mode === 'own').forEach(c => {
+            const on = sel[key].cards.has(c);
+            box.append(h('button', { class: 'btn ' + (on ? '' : 'soft'), style: 'min-height:38px;padding:6px 10px;font-size:15px', onclick: () => { on ? sel[key].cards.delete(c) : sel[key].cards.add(c); draw(); } }, (on ? '✓ ' : '') + E.CARDS[c].name));
+          });
+          const inp = h('input', { id: 'cash-' + key, type: 'number', inputmode: 'numeric', min: 0, step: 500, max: pl(who).cash, value: sel[key].cash || '', placeholder: 'Hotovost $', style: 'border:2px solid var(--paper-3);border-radius:8px;padding:8px;font:16px var(--f-body)', oninput: e => { sel[key].cash = Math.max(0, Math.min(pl(who).cash, +e.target.value || 0)); } });
+          box.append(h('label', { class: 'fl' }, `Hotovost (max ${fmt(pl(who).cash)})`, inp));
+          return box;
+        };
+        b.append(side(i, 'give', `${pl(i).name} dává`), side(b2, 'get', `${pl(b2).name} dává`));
+        b.append(h('button', { class: 'btn red', onclick: () => {
+          const t = { a: i, b: b2, give: { states: [...sel.give.states], cards: [...sel.give.cards], cash: sel.give.cash }, get: { states: [...sel.get.states], cards: [...sel.get.cards], cash: sel.get.cash } };
+          if (!t.give.states.length && !t.give.cards.length && !t.give.cash && !t.get.states.length && !t.get.cards.length && !t.get.cash) { toast('Vyberte, co se má vyměnit.', 'minus'); return; }
+          if (!E.tradeValid(G, t)) { toast('Obchod není platný (zkontrolujte hotovost).', 'minus'); return; }
+          if (pl(b2).ai) {
+            if (AI.evalTrade(G, t)) { runSide(E.doTrade(G, t)); toast(`${pl(b2).name} přijímá obchod.`, 'plus'); close(); }
+            else toast(`${pl(b2).name} nabídku odmítá.`, 'minus');
+          } else {
+            close();
+            sheet(`${pl(b2).name}, přijímáte obchod?`, (bb, cl2) => {
+              const desc = side2 => [...side2.states, ...side2.cards.map(c => E.CARDS[c].name), side2.cash ? fmt(side2.cash) : null].filter(Boolean).join(', ') || 'nic';
+              bb.append(h('p', null, h('b', null, pl(i).name), ' nabízí: ', desc(t.give)), h('p', null, 'a chce od vás: ', desc(t.get)),
+                h('div', { class: 'row' }, h('button', { class: 'btn red', onclick: () => { runSide(E.doTrade(G, t)); cl2(); } }, 'Přijmout'), h('button', { class: 'btn ghost', onclick: () => { toast('Obchod odmítnut.'); cl2(); } }, 'Odmítnout')));
+            });
+          }
+        } }, 'Navrhnout obchod'));
+        b.append(h('p', { class: 'note' }, 'Vyměněný stát musí nový majitel znovu legalizovat průjezdem bankou FED. Zapůjčené karty (Chief, Commander, Mafia) obchodovat nelze.'));
+      };
+      draw();
+    });
+  }
+
+  // ---------- menu ----------
+  function openMenu() {
+    sheet('Nabídka', (b, close) => {
+      b.append(h('button', { class: 'btn soft', onclick: () => { close(); openRules(); } }, 'Pravidla a výklad v aplikaci'));
+      b.append(h('button', { class: 'btn soft', onclick: () => { close(); openLog(); } }, 'Záznam hry'));
+      b.append(h('button', { class: 'btn soft', onclick: () => { fast = !fast; close(); renderPanel(); toast(fast ? 'Tahy počítače jsou zrychlené.' : 'Normální rychlost.'); } }, fast ? 'Normální rychlost počítače' : 'Zrychlit tahy počítače'));
+      b.append(h('button', { class: 'btn red', onclick: () => { close(); confirmBox('Ukončit rozehranou hru a začít novou?', 'Nová hra', () => { clearSave(); showSetup(); }); } }, 'Nová hra'));
+    });
+  }
+  function openLog() {
+    sheet('Záznam hry', b => {
+      G.log.slice().reverse().forEach(l => b.append(h('div', { style: 'font-size:14px;border-bottom:1px solid var(--paper-3);padding:4px 0' }, h('span', { class: 'tag' }, 'kolo ' + l.turn), l.text)));
+    });
+  }
+  function openRules() {
+    sheet('Pravidla', b => {
+      b.append(h('div', { class: 'rules', html: RULES_HTML }));
+    });
+  }
+  const RULES_HTML = `
+<h4>Cíl hry</h4><p>Kupujte státy a jezděte figurkou mezi bankami FED (New York) a BC (Sacramento). V bance inkasujete částky z karet vašich států. Vyhrává, kdo jako poslední nezbankrotuje (nebo kdo dosáhne cíle nastaveného na začátku).</p>
+<h4>Tah</h4><ul><li>Házíte dvěma kostkami. Dvojice znamená hod navíc. Za poplatek můžete házet 1 kostkou (5 000 $), 3 kostkami (10 000 $) nebo 4 kostkami (20 000 $).</li><li>Na rozcestí vybíráte směr. Do banky dojedete vždy – zbytek hodu propadá.</li><li>Při prvním okruhu FED → BC → FED smíte jednou hod přehodit.</li></ul>
+<h4>Mýtné</h4><ul><li>Každé překročení hranice cizího státu (vjezd i výjezd) stojí 1 000 $, každé zastavení v něm dalších 1 000 $.</li><li>Mýtné se platí až za státy legalizované průjezdem bankou FED.</li><li>Zastavení v bance se počítá jako zastavení ve státě: v bance FED se platí majiteli New Yorku, v bance BC majiteli Californie. Cesta do banky bez dalšího zastavení v tom státě tedy stojí nejméně 3 000 $ (vjezd, zastavení v bance, výjezd).</li><li>Double Label, Chief (×2) a Commander (×4) se násobí.</li></ul>
+<h4>Placené trasy</h4><p>Zkratky (modré s hvězdou) a Kanadská dálnice se platí bance, a pokud někdo vlastní Californii, jemu. Lodní a letecké linky se platí bance, nebo majiteli karty Sea Lines / Air Lines. Majitel příslušné karty jezdí zdarma.</p>
+<h4>Jak aplikace vykládá nejasná místa</h4><ul>
+<li>Každé políčko (i s hvězdou, lodí, letadlem) je 1 krok. Letadla a lodě neleží v žádném státě – nepočítá se tam mýtné ani se nedá nic koupit.</li>
+<li>Zákaz „vrátit se stejnou cestou": během jedné jízdy z banky nelze projet žádný úsek trasy dvakrát. Po příjezdu do banky začíná nová jízda a lze jet zpět stejnou trasou.</li>
+<li>Na placenou trasu nelze vjet bez peněz na jízdenku, pokud existuje jiná cesta.</li>
+<li>Dvojice platí jen při hodu dvěma kostkami.</li>
+<li>V bankách se vyplácí za všechny vlastněné státy, i nelegalizované. Legalizace ovlivňuje jen mýtné.</li>
+<li>Chief a Commander násobí mýtné a výplatu v BC, výplatu ve FED ne (podle textu na kartě „except FED").</li>
+<li>Special Label: při zastavení se platí navíc hodnota celého hodu × 1 000 $ (s násobením Chief/Commander).</li>
+<li>Shareholder: majitel má slevu na všechny speciální karty (sčítá se) a dostává od banky svůj podíl z ceny, kdykoli si speciální kartu koupí jiný hráč. Na Californii a značky se nevztahuje.</li>
+<li>Mafia vyřadí hráče, se kterým se figurky potkají nebo projedou stejným políčkem – kdokoli z nich jede. Na políčkách bank se vyřazovat nedá. Jakmile zůstane jediný hráč, hra okamžitě končí.</li>
+<li>Independent Label zakazuje vstup do státu i letadlem nebo lodí. Na leteckou či lodní linku, která vede jen do zakázaného státu, nelze nastoupit.</li>
+<li>Second National Bank: hráč, který vjede do jejího státu, inkasuje od majitele 1 000 $ za každý svůj stát a začíná tam novou jízdu (nezastavuje).</li>
+<li>Independent Label nelze umístit, pokud by kterémukoli hráči znemožnil cestu mezi FED a BC.</li>
+<li>Nemá-li hráč na platbu, zaplatí, co má, a zbytek dluží. Dluh splatí prodejem majetku bance za nákupní cenu (zapůjčené karty vrátí za jistinu). Kdo nemůže, zbankrotuje a jeho majetek se vrací bance.</li>
+<li>Karta California: majitel v Sacramentu nic neinkasuje a ostatním vyplácí jejich podíl, ve FED dostává 30 000 $.</li>
+</ul>`;
+
+  // ============ úvodní obrazovka ============
+  let setupPlayers = [{ name: 'Hráč 1', ai: false, color: 'red' }, { name: 'Počítač 1', ai: true, color: 'yellow' }, { name: 'Počítač 2', ai: true, color: 'green' }];
+  const freeColor = () => E.COLORS.find(c => !setupPlayers.some(p => p.color === c.id)).id;
+  let victory = 'last', target = 1000000, targetStates = 15;
+  function showSetup() {
+    G = null;
+    $('#app').hidden = true;
+    const S = $('#setup'); S.hidden = false; S.innerHTML = '';
+    const saved = loadSave();
+    const card = h('div', { class: 'setup-card' });
+    const draw = () => {
+      card.innerHTML = '';
+      card.append(h('h1', null, 'Immigrants to the United States of America'), h('p', { class: 'lead' }, 'Desková hra pro 2–7 hráčů na jednom zařízení. Kupujte státy, vybírejte mýtné a dojeďte do banky.'));
+      if (saved && saved.pending && saved.pending.type !== 'over') {
+        card.append(h('button', { class: 'btn red big', onclick: () => startGame(saved) }, h('span', null, 'Pokračovat v rozehrané hře', h('small', null, `Kolo ${saved.turn} · ${saved.players.filter(p => p.alive).map(p => p.name).join(', ')}`))));
+        card.append(h('div', { class: 'sec' }, 'nebo nová hra'));
+      }
+      setupPlayers.forEach((p, k) => {
+        const color = E.COLORS.find(c => c.id === p.color);
+        card.append(h('div', { class: 'prow' }, h('button', { class: 'colorbtn', html: starSVG(color.id, 34), 'aria-label': `Barva hráče ${k + 1}: ${color.name} – změnit`, onclick: () => pickColor(p, draw) }),
+          h('input', { id: 'pname' + k, value: p.name, maxlength: 14, 'aria-label': 'Jméno hráče ' + (k + 1), oninput: e => { p.name = e.target.value; } }),
+          h('div', { class: 'seg' }, h('button', { 'aria-pressed': String(!p.ai), onclick: () => { p.ai = false; if (/^Počítač/.test(p.name)) p.name = 'Hráč ' + (k + 1); draw(); } }, 'Člověk'), h('button', { 'aria-pressed': String(p.ai), onclick: () => { p.ai = true; if (/^Hráč/.test(p.name)) p.name = 'Počítač ' + (k + 1); draw(); } }, 'Počítač')),
+          setupPlayers.length > 2 ? h('button', { class: 'rm', 'aria-label': 'Odebrat hráče', onclick: () => { setupPlayers.splice(k, 1); draw(); } }, '×') : h('span', { style: 'width:32px' })));
+      });
+      if (setupPlayers.length < 7) card.append(h('button', { class: 'btn ghost', onclick: () => { setupPlayers.push({ name: 'Počítač ' + (setupPlayers.length + 1), ai: true, color: freeColor() }); draw(); } }, '+ Přidat hráče'));
+      const vs = h('select', { id: 'victory', onchange: e => { victory = e.target.value; draw(); } },
+        h('option', { value: 'last', selected: victory === 'last' }, 'Vyhrává poslední, kdo nezbankrotuje'),
+        h('option', { value: 'cash', selected: victory === 'cash' }, 'Vyhrává, kdo první dosáhne hotovosti'),
+        h('option', { value: 'states', selected: victory === 'states' }, 'Vyhrává, kdo první vlastní počet států'));
+      card.append(h('label', { class: 'fl' }, 'Konec hry', vs));
+      card.append(h('p', { class: 'note', style: 'margin:-4px 0 0' }, victory === 'last' ? 'Hra končí, jakmile zůstane jediný hráč – ať ostatní zbankrotují, nebo je vyřadí Mafia.' : 'Hra končí dosažením cíle, nebo dříve, pokud zůstane jediný hráč (ostatní zbankrotují nebo je vyřadí Mafia).'));
+      if (victory === 'cash') card.append(h('label', { class: 'fl' }, 'Cílová hotovost ($)', h('input', { id: 'tcash', type: 'number', step: 50000, min: 100000, value: target, style: 'border:2px solid var(--paper-3);border-radius:8px;padding:9px;font:16px var(--f-body)', oninput: e => { target = +e.target.value || 1000000; } })));
+      if (victory === 'states') card.append(h('label', { class: 'fl' }, 'Cílový počet států', h('input', { id: 'tstates', type: 'number', min: 3, max: 49, value: targetStates, style: 'border:2px solid var(--paper-3);border-radius:8px;padding:9px;font:16px var(--f-body)', oninput: e => { targetStates = +e.target.value || 15; } })));
+      card.append(h('button', { class: 'btn red big', onclick: () => {
+        const ps = setupPlayers.map((p, k) => ({ name: (p.name || '').trim() || (p.ai ? 'Počítač ' : 'Hráč ') + (k + 1), ai: p.ai, color: p.color }));
+        clearSave();
+        startGame(E.newGame(ps, { targetCash: victory === 'cash' ? target : 0, targetStates: victory === 'states' ? targetStates : 0 }));
+      } }, 'Začít hru'));
+      card.append(h('button', { class: 'btn soft', onclick: openRules }, 'Pravidla'));
+    };
+    draw();
+    S.append(h('div', { class: 'hero-wrap' }, h('div', { class: 'hero', role: 'img', 'aria-label': 'Výřez herní desky s názvem hry' })), card);
+  }
+  function pickColor(p, done) {
+    sheet(`Barva – ${p.name || 'hráč'}`, (b, close) => {
+      b.append(h('p', { class: 'note', style: 'margin:0' }, 'Když vyberete barvu jiného hráče, barvy se prohodí.'));
+      const grid = h('div', { class: 'colorgrid' });
+      E.COLORS.forEach(c => {
+        const other = setupPlayers.find(q => q !== p && q.color === c.id);
+        grid.append(h('button', { class: 'colorpick', 'aria-pressed': String(p.color === c.id), onclick: () => { if (other) other.color = p.color; p.color = c.id; close(); done(); } },
+          h('span', { html: starSVG(c.id, 44) }), h('b', null, c.name), h('small', null, other ? other.name : p.color === c.id ? 'vybráno' : 'volná')));
+      });
+      b.append(grid);
+    });
+  }
+  function startGame(g) {
+    G = g;
+    $('#setup').hidden = true; $('#app').hidden = false;
+    busy = false; lastTrail = []; trailPlayer = -1;
+    requestAnimationFrame(() => {
+      fitView(); buildOverlay();
+      const n = pl(G.cur).node; view.s = Math.min(coverScale(), 0.4); view.tx = wrap.clientWidth / 2 - px(n) * view.s; view.ty = wrap.clientHeight / 2 - py(n) * view.s; clampView(); applyView();
+      refresh();
+    });
+  }
+
+  // ============ start ============
+  function init() {
+    wrap = $('#mapwrap'); world = $('#world'); overlay = $('#overlay');
+    setupPanZoom();
+    $('#zin').onclick = () => zoomAt(1.5, wrap.clientWidth / 2, wrap.clientHeight / 2);
+    $('#zout').onclick = () => zoomAt(1 / 1.5, wrap.clientWidth / 2, wrap.clientHeight / 2);
+    $('#zfit').onclick = () => fitView();
+    $('#zme').onclick = () => { if (G) focusNodes([pl(G.pending && G.pending.p != null ? G.pending.p : G.cur).node], 0.35); };
+    $('#menuBtn').onclick = openMenu;
+    $('#chips').addEventListener('scroll', placeLastRoll, { passive: true });
+    window.addEventListener('resize', () => setTimeout(placeLastRoll, 50));
+    showSetup();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>

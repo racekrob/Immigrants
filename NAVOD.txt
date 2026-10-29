@@ -1,0 +1,9 @@
+IMMIGRANTS – instalace do telefonu
+
+1) Nahrajte celou tuto složku na web (zdarma např. https://app.netlify.com/drop – stačí složku přetáhnout myší do okna).
+2) Netlify vám dá adresu, např. https://neco.netlify.app – tu otevřete v telefonu.
+3) iPhone (Safari): tlačítko Sdílet → „Přidat na plochu".
+   Android (Chrome): menu ⋮ → „Přidat na plochu" / „Nainstalovat aplikaci".
+4) Hra se spustí z ikony přes celou obrazovku a po prvním otevření funguje i bez internetu.
+
+Novou verzi nainstalujete tak, že na stejnou adresu nahrajete novou složku (na Netlify: Deploys → přetáhnout novou složku).
