@@ -190,7 +190,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 #setup { position: fixed; inset: 0; overflow-y: auto; background: var(--ink); z-index: 40;
   padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
 .hero { max-width: 560px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16 / 9; max-width: 100%;
-  background: url('img/board.jpg') 88% 2% / 520% auto no-repeat; border: 3px solid var(--paper); }
+  background: url('board.jpg') 88% 2% / 520% auto no-repeat; border: 3px solid var(--paper); }
 .hero::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -60px 50px -20px rgba(20,32,59,.65); }
 .hero-wrap { max-width: 560px; margin: 0 auto; }
 .setup-card { max-width: 560px; margin: 0 auto; background: var(--paper); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -267,7 +267,7 @@ label.fl { display: flex; flex-direction: column; gap: 4px; font-family: var(--f
     <button class="iconbtn" id="menuBtn" aria-label="Nabídka"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   </div>
   <div id="mapwrap">
-    <div id="world"><img src="img/board.jpg" width="3925" height="2426" alt="Herní deska – mapa USA s trasami"><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div id="world"><img src="board.jpg" width="3925" height="2426" alt="Herní deska – mapa USA s trasami"><svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div id="lastroll" hidden aria-label="Poslední hod"></div>
     <div id="steps" hidden></div>
     <div class="mapctl">
@@ -1407,7 +1407,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
   function walletEl(i) {
     const p = pl(i);
     const b = h('div', { class: 'bills' });
-    billsFor(p.cash, 9).forEach((n, k) => b.append(h('img', { src: `img/bill-${n}.jpg`, alt: '', style: `left:${k * 16}px; transform: rotate(${(k % 3 - 1) * 2}deg)` })));
+    billsFor(p.cash, 9).forEach((n, k) => b.append(h('img', { src: `bill-${n}.jpg`, alt: '', style: `left:${k * 16}px; transform: rotate(${(k % 3 - 1) * 2}deg)` })));
     return h('div', { class: 'wallet' }, h('span', { class: 'amt num' }, fmt(p.cash)), b);
   }
   function header(i, title, sub) {
@@ -1475,7 +1475,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
     } else if (pd.type === 'buy') {
       const s = pd.state, ds = D.states[s];
       P.append(header(i, s === 'Washington D.C.' ? 'Washington D.C. je zdarma' : `Koupit ${s}?`, `Hotovost ${fmt(p.cash)}`));
-      P.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `img/cards/${ds.img}.jpg`, alt: 'Karta ' + s }),
+      P.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `card-${ds.img}.jpg`, alt: 'Karta ' + s }),
         h('dl', { class: 'kv', style: 'flex:1' }, h('dt', null, 'Cena'), h('dd', { class: 'num' }, ds.price ? fmt(ds.price) : 'zdarma'),
           h('dt', null, 'Výplata FED'), h('dd', { class: 'num' }, fmt(ds.fed)), h('dt', null, s === 'California' ? 'BC' : 'Výplata BC'), h('dd', { class: 'num' }, s === 'California' ? 'vyplácíte ostatní' : fmt(ds.bc)),
           s === 'California' ? [h('dt', null, 'Navíc'), h('dd', null, 'zkratky zdarma, jízdné vám')] : null)));
@@ -1509,7 +1509,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
     if (!amt || fast) return;
     const a = chipRect(from), b = chipRect(to);
     billsFor(amt, 3).forEach((n, k) => {
-      const img = h('img', { class: 'flybill', src: `img/bill-${n}.jpg`, alt: '' });
+      const img = h('img', { class: 'flybill', src: `bill-${n}.jpg`, alt: '' });
       document.body.append(img);
       const x0 = a.left + a.width / 2 - 35, y0 = a.top + a.height / 2, x1 = b.left + b.width / 2 - 35, y1 = b.top + b.height / 2;
       const an = img.animate([{ transform: `translate(${x0}px,${y0}px) rotate(-8deg)`, opacity: 0 }, { opacity: 1, offset: .15 }, { transform: `translate(${(x0 + x1) / 2}px,${Math.max(y0, y1) + 70}px) rotate(6deg)`, offset: .5 }, { transform: `translate(${x1}px,${y1}px) rotate(0)`, opacity: .2 }], { duration: 700, delay: k * 90, easing: 'ease-in-out', fill: 'forwards' });
@@ -1631,7 +1631,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
         dl.append(h('dt', { style: 'color:var(--ink);font-weight:700' }, 'Celkem'), h('dd', { class: 'num', style: 'font-size:20px;color:var(--ok)' }, fmt(e.total)));
         b.append(dl);
         const bl = h('div', { class: 'bills', style: 'height:48px' });
-        billsFor(e.total, 10).forEach((n, k) => { const im = h('img', { src: `img/bill-${n}.jpg`, alt: '', style: `left:${k * 22}px;height:44px` }); im.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: k * 70, fill: 'backwards' }); bl.append(im); });
+        billsFor(e.total, 10).forEach((n, k) => { const im = h('img', { src: `bill-${n}.jpg`, alt: '', style: `left:${k * 22}px;height:44px` }); im.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: k * 70, fill: 'backwards' }); bl.append(im); });
         b.append(bl, h('button', { class: 'btn', onclick: close }, 'Pokračovat'));
       }, res);
       if (fast) setTimeout(s.close, 1200);
@@ -1640,7 +1640,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
   function stateInfo(s) {
     const st = G.states[s], ds = D.states[s];
     sheet(s, b => {
-      b.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `img/cards/${ds.img}.jpg`, alt: 'Karta ' + s }),
+      b.append(h('div', { class: 'cardrow' }, h('img', { class: 'card', src: `card-${ds.img}.jpg`, alt: 'Karta ' + s }),
         h('dl', { class: 'kv', style: 'flex:1' },
           h('dt', null, 'Majitel'), h('dd', null, st.owner >= 0 ? pl(st.owner).name : 'nikdo'),
           h('dt', null, 'Stav'), h('dd', null, st.owner < 0 ? '–' : st.legal ? 'legalizován' : 'čeká na legalizaci ve FED'),
@@ -1689,7 +1689,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
             });
             if (c === 'snb' && E.hasCard(G, i, 'snb')) btns.append(h('button', { class: 'alt', onclick: () => pickState(i, 'Kam přesunout Second National Bank?', E.ownedStates(G, i).filter(x => x !== 'New York' && x !== 'California'), st => { E.placeSNB(G, i, st); refreshSide(); draw(); }) }, G.snb ? 'Přesunout banku' : 'Umístit banku'));
             if (c === 'mafia' && !acts.length && !cur) btns.append(h('span', { class: 'err' }, 'Lze zapůjčit jen na začátku tahu na políčku banky FED.'));
-            b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${def.img}.jpg`, alt: def.name }),
+            b.append(h('div', { class: 'item' }, h('img', { src: `card-${def.img}.jpg`, alt: def.name }),
               h('div', { class: 't' }, h('b', null, def.name), h('span', { class: 'tag' + (cur ? ' red' : '') }, status), h('p', null, def.desc), btns)));
           });
           b.append(h('p', { class: 'note' }, 'Kartu California koupíte zastavením na políčku ve státě California (75 000 $).'));
@@ -1697,7 +1697,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
           Object.keys(E.LABELS).forEach(t => {
             const def = E.LABELS[t];
             const mine = E.ownedStates(G, i).filter(s => !G.states[s].label);
-            b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${def.img}.jpg`, alt: def.name }),
+            b.append(h('div', { class: 'item' }, h('img', { src: `card-${def.img}.jpg`, alt: def.name }),
               h('div', { class: 't' }, h('b', null, def.name), h('span', { class: 'tag' }, `zbývá ${G.labelsLeft[t]} ks · ${fmt(def.price)}`), h('p', null, def.desc),
                 h('div', { class: 'acts' }, h('button', { disabled: !G.labelsLeft[t] || pl(i).cash < def.price || !mine.length, onclick: () => pickLabelState(i, t, draw) }, 'Umístit na stát')))));
           });
@@ -1710,7 +1710,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
     sheet(`${E.LABELS[t].name} – vyberte stát`, (b, close) => {
       E.ownedStates(G, i).forEach(s => {
         const err = E.labelCheck(G, i, t, s);
-        b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `img/cards/${D.states[s].img}.jpg`, alt: '' }),
+        b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `card-${D.states[s].img}.jpg`, alt: '' }),
           h('div', { class: 't' }, h('b', null, s), err ? h('span', { class: 'err' }, err) : h('div', { class: 'acts' }, h('button', { onclick: () => { runSide(E.placeLabel(G, i, t, s)); close(); done(); } }, `Umístit · ${fmt(E.LABELS[t].price)}`)))));
       });
     });
@@ -1739,13 +1739,13 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
         E.ownedStates(G, i).forEach(s => {
           const st = G.states[s], ds = D.states[s];
           const it = items.find(x => x.kind === 'state' && x.id === s);
-          b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `img/cards/${ds.img}.jpg`, alt: '' }),
+          b.append(h('div', { class: 'item' }, h('img', { class: 'tall', src: `card-${ds.img}.jpg`, alt: '' }),
             h('div', { class: 't' }, h('b', null, s), h('span', { class: 'tag' + (st.legal ? '' : ' red') }, st.legal ? 'legální' : 'nelegalizován'), st.label ? h('span', { class: 'tag' }, E.LABELS[st.label].name) : null,
               h('p', null, `FED ${fmt(ds.fed)} · BC ${s === 'California' ? '–' : fmt(ds.bc)}`),
               h('div', { class: 'acts' }, h('button', { class: 'alt', onclick: () => confirmBox(`Prodat ${it.name} bance za ${fmt(it.value)}?`, 'Prodat', () => { runSide(E.sell(G, i, 'state', s)); draw(); }) }, `Prodat bance · ${fmt(it.value)}`)))));
         });
         items.filter(x => x.kind === 'card').forEach(it => {
-          b.append(h('div', { class: 'item' }, h('img', { src: `img/cards/${E.CARDS[it.id].img}.jpg`, alt: '' }),
+          b.append(h('div', { class: 'item' }, h('img', { src: `card-${E.CARDS[it.id].img}.jpg`, alt: '' }),
             h('div', { class: 't' }, h('b', null, it.name), h('div', { class: 'acts' }, h('button', { class: 'alt', onclick: () => confirmBox(`${it.name}: prodat bance za ${fmt(it.value)}?`, 'Prodat', () => { runSide(E.sell(G, i, 'card', it.id)); draw(); }) }, `Prodat · ${fmt(it.value)}`)))));
         });
       };
