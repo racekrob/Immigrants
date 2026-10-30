@@ -189,9 +189,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 /* ---------- úvodní obrazovka ---------- */
 #setup { position: fixed; inset: 0; overflow-y: auto; background: var(--ink); z-index: 40;
   padding: calc(env(safe-area-inset-top, 0px) + 16px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
-.hero { max-width: 560px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16 / 9; max-width: 100%;
-  background: url('board.jpg') 88% 2% / 520% auto no-repeat; border: 3px solid var(--paper); }
-.hero::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -60px 50px -20px rgba(20,32,59,.65); }
+.hero { max-width: 560px; margin: 0 auto 16px; border-radius: 12px; overflow: hidden; background: var(--paper); border: 3px solid var(--paper); padding: 10px 12px; box-sizing: border-box; }
+.hero img { display: block; width: 100%; height: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hero-wrap { max-width: 560px; margin: 0 auto; }
 .setup-card { max-width: 560px; margin: 0 auto; background: var(--paper); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .setup-card h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 26px; color: var(--ink); line-height: 1.1; text-wrap: balance; }
@@ -284,6 +284,24 @@ label.fl { display: flex; flex-direction: column; gap: 4px; font-family: var(--f
 .statecard .band .r.big { font-size: 9.6cqw; margin-bottom: 1.5cqw; }
 .statecard .band i { font-style: normal; }
 .statecard .band b { font-weight: 400; font-variant-numeric: tabular-nums; }
+
+.manual { display: flex; flex-direction: column; gap: 6px; }
+.mtoc { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 6px; border-bottom: 2px solid var(--paper-3); }
+.mtoc button { border: 0; border-radius: 14px; background: var(--paper-2); color: var(--ink); font-family: var(--f-ui); font-size: 14px; font-weight: 600; padding: 5px 10px; }
+.msec { scroll-margin-top: 8px; }
+.msec h3 { font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--ink); margin: 14px 0 4px; }
+.msec p, .msec li { font-size: 14.5px; line-height: 1.5; margin: 4px 0; }
+.msec ul { padding-left: 18px; margin: 4px 0; }
+.mex { background: #fff6dc; border-left: 4px solid var(--gold); border-radius: 6px; padding: 6px 10px; margin: 6px 0; }
+.mex b { font-family: var(--f-ui); font-size: 14px; color: var(--ink); }
+.mex p { margin: 2px 0 0; }
+.mcard { display: flex; gap: 12px; align-items: flex-start; background: #fbf7ec; border: 1px solid var(--paper-3); border-radius: 10px; padding: 8px; margin: 6px 0; }
+.mcard img { width: 120px; flex: none; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.mcard > div { min-width: 0; }
+.mcard > div > b { font-family: var(--f-ui); font-size: 17px; color: var(--ink); margin-right: 6px; }
+.mcard p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; }
+.mrow { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+@media (max-width: 420px) { .mcard img { width: 96px; } }
 </style>
 </head>
 <body>
@@ -1905,6 +1923,13 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
       m.dataset.x = lx(s); m.dataset.y = ly(s) - 30;
       m.append(sv('circle', { r: 16, fill: st.legal ? '#fff' : '#d9d4c7', stroke: '#1d1d1f', 'stroke-width': 2 }));
       m.append(sv('polygon', { points: starPoly(14.5, 6), fill: st.legal ? c : 'none', stroke: st.legal ? '#1d1d1f' : c, 'stroke-width': st.legal ? 1.2 : 3 }));
+      if (st.label === 'independent') {
+        // vlajka značky Independent vedle hvězdy majitele
+        const fl = sv('g', { transform: 'translate(19,-1)' });
+        fl.append(sv('rect', { x: -0.5, y: -0.5, width: 31, height: 18, fill: '#1d1d1f', rx: 1.5 }));
+        const im = sv('image', { href: 'flag-independent.jpg', x: 0, y: 0, width: 30, height: 17, preserveAspectRatio: 'xMidYMid slice' });
+        fl.append(im); m.append(fl);
+      }
       if (st.label) {
         const b = sv('g', { transform: 'translate(17,-14)' });
         b.append(sv('rect', { x: -10, y: -9, width: 22, height: 17, rx: 4, fill: st.label === 'independent' ? '#c62420' : '#14203b' }));
@@ -2413,7 +2438,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
   // ---------- menu ----------
   function openMenu() {
     sheet('Nabídka', (b, close) => {
-      b.append(h('button', { class: 'btn soft', onclick: () => { close(); openRules(); } }, 'Pravidla a výklad v aplikaci'));
+      b.append(h('button', { class: 'btn soft', onclick: () => { close(); openRules(); } }, 'Pravidla a manuál'));
       b.append(h('button', { class: 'btn soft', onclick: () => { close(); openLog(); } }, 'Záznam hry'));
       b.append(h('button', { class: 'btn soft', onclick: () => { fast = !fast; close(); renderPanel(); toast(fast ? 'Tahy počítače jsou zrychlené.' : 'Normální rychlost.'); } }, fast ? 'Normální rychlost počítače' : 'Zrychlit tahy počítače'));
       b.append(h('button', { class: 'btn red', onclick: () => { close(); confirmBox('Ukončit rozehranou hru a začít novou?', 'Nová hra', () => { clearSave(); showSetup(); }); } }, 'Nová hra'));
@@ -2424,39 +2449,120 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
       G.log.slice().reverse().forEach(l => b.append(h('div', { style: 'font-size:14px;border-bottom:1px solid var(--paper-3);padding:4px 0' }, h('span', { class: 'tag' }, 'kolo ' + l.turn), l.text)));
     });
   }
+  // ============ pravidla a manuál ============
   function openRules() {
-    sheet('Pravidla', b => {
-      if (BETA ? (G && G.conf && G.conf.rules) : (E.CONF.shDeposit || E.CONF.halfRefund)) {
-        const R = BETA ? G.conf.rules : { shDeposit: E.CONF.shDeposit, halfRefund: E.CONF.halfRefund }, L = [];
-        if (R.shDeposit) L.push('<li>Jistina za zápůjčku Chief a Commander se snižuje o slevu z karet Shareholder.</li>');
-        if (R.halfRefund) L.push('<li>Kdo je při zápůjčce Chief nebo Commander přeplacen, dostane zpět jen polovinu jistiny.</li>');
-        if (L.length) b.append(h('div', { class: 'rules', html: '<h4>' + (BETA ? 'Pravidla této beta hry' : 'Doplněná pravidla') + '</h4><ul>' + L.join('') + '</ul>' }));
-      }
-      b.append(h('div', { class: 'rules', html: RULES_HTML }));
-    });
+    sheet('Pravidla a manuál', b => { b.append(buildManual()); });
   }
-  const RULES_HTML = `
-<h4>Cíl hry</h4><p>Kupujte státy a jezděte figurkou mezi bankami FED (New York) a BC (Sacramento). V bance inkasujete částky z karet vašich států. Vyhrává, kdo jako poslední nezbankrotuje (nebo kdo dosáhne cíle nastaveného na začátku).</p>
-<h4>Tah</h4><ul><li>Házíte dvěma kostkami. Dvojice znamená hod navíc. Za poplatek můžete házet 1 kostkou (5 000 $), 3 kostkami (10 000 $) nebo 4 kostkami (20 000 $).</li><li>Na rozcestí vybíráte směr. Do banky dojedete vždy – zbytek hodu propadá.</li><li>Při prvním okruhu FED → BC → FED smíte jednou hod přehodit.</li></ul>
-<h4>Mýtné</h4><ul><li>Každé překročení hranice cizího státu (vjezd i výjezd) stojí 1 000 $, každé zastavení v něm dalších 1 000 $.</li><li>Mýtné se platí až za státy legalizované průjezdem bankou FED.</li><li>Zastavení v bance se počítá jako zastavení ve státě: v bance FED se platí majiteli New Yorku, v bance BC majiteli Californie. Cesta do banky bez dalšího zastavení v tom státě tedy stojí nejméně 3 000 $ (vjezd, zastavení v bance, výjezd).</li><li>Double Label, Chief (×2) a Commander (×4) se násobí.</li></ul>
-<h4>Placené trasy</h4><p>Zkratky (modré s hvězdou) a Kanadská dálnice se platí bance, a pokud někdo vlastní Californii, jemu. Lodní a letecké linky se platí bance, nebo majiteli karty Sea Lines / Air Lines. Majitel příslušné karty jezdí zdarma.</p>
-<h4>Jak aplikace vykládá nejasná místa</h4><ul>
-<li>Každé políčko (i s hvězdou, lodí, letadlem) je 1 krok. Letadla a lodě neleží v žádném státě – nepočítá se tam mýtné ani se nedá nic koupit.</li>
-<li>Zákaz „vrátit se stejnou cestou": během jedné jízdy z banky nelze projet žádný úsek trasy dvakrát. Po příjezdu do banky začíná nová jízda a lze jet zpět stejnou trasou.</li>
-<li>Na placenou trasu nelze vjet bez peněz na jízdenku, pokud existuje jiná cesta.</li>
-<li>Dvojice platí jen při hodu dvěma kostkami.</li>
-<li>V bankách se vyplácí za všechny vlastněné státy, i nelegalizované. Legalizace ovlivňuje jen mýtné.</li>
-<li>Chief a Commander násobí mýtné a výplatu v BC, výplatu ve FED ne (podle textu na kartě „except FED").</li>
-<li>Special Label: při zastavení se platí navíc hodnota celého hodu × 1 000 $ (s násobením Chief/Commander).</li>
-<li>Shareholder: majitel má slevu na všechny speciální karty (sčítá se) a dostává od banky svůj podíl z ceny, kdykoli si speciální kartu koupí jiný hráč. Na Californii a značky se nevztahuje.</li>
-<li>Mafia vyřadí hráče, se kterým se figurky potkají nebo projedou stejným políčkem – kdokoli z nich jede. Na políčkách bank se vyřazovat nedá. Jakmile zůstane jediný hráč, hra okamžitě končí.</li>
-<li>Independent Label zakazuje vstup do státu i letadlem nebo lodí. Na leteckou či lodní linku, která vede jen do zakázaného státu, nelze nastoupit.</li>
-<li>Second National Bank: hráč, který vjede do jejího státu, inkasuje od majitele 1 000 $ za každý svůj stát a začíná tam novou jízdu (nezastavuje).</li>
-<li>Independent Label nelze umístit, pokud by některému hráči nezbyla žádná cesta z banky do banky ani okruh. Majiteli Californie musí vždy zůstat okruh kolem banky FED.</li>
-<li>Do slepé uličky nelze vjet: hra nabízí jen směry, ze kterých se dá dojet do banky bez otáčení a bez průjezdu státem s Independent Label.</li>
-<li>Nemá-li hráč na platbu, zaplatí, co má, a zbytek dluží. Dluh splatí prodejem majetku bance za nákupní cenu (zapůjčené karty vrátí za jistinu). Kdo nemůže, zbankrotuje a jeho majetek se vrací bance.</li>
-<li>Karta California: majitel v Sacramentu nic neinkasuje a ostatním vyplácí jejich podíl, ve FED dostává 30 000 $.</li>
-</ul>`;
+  function buildManual() {
+    const $s = s => D.states[s];
+    const C = E.CARDS, L = E.LABELS;
+    const ca = $s('California');
+    const shDep = E.CONF.shDeposit, half = E.CONF.halfRefund;
+    const priceOf = (kind, s) => { const c = D.chains.find(ch => ch.kind === kind && ch.ends.some(n => D.nodes[n].s === s)); return c ? fmt(c.price) : '—'; };
+    const shortNY = D.chains.find(c => c.kind === 'short' && c.ends.every(n => D.nodes[n].s === 'New York'));
+    const oh = $s('Ohio'), tx = $s('Texas');
+    const wrap = h('div', { class: 'manual' });
+    const secs = [];
+    const sec = (id, title, ...kids) => { secs.push([id, title]); wrap.append(h('section', { id: 'm-' + id, class: 'msec' }, h('h3', null, title), ...kids)); };
+    const p = (html) => h('p', { html });
+    const ul = (...items) => h('ul', null, items.map(t => h('li', { html: t })));
+    const ex = (title, html) => h('div', { class: 'mex' }, h('b', null, 'Příklad: ' + title), h('p', { html }));
+    const cardBox = (img, name, price, html, tall) => h('div', { class: 'mcard' }, h('img', { src: `card-${img}.jpg`, alt: name, class: tall ? 'tall' : '' }),
+      h('div', null, h('b', null, name), price ? h('span', { class: 'tag' }, price) : null, h('p', { html })));
+
+    sec('cil', 'Cíl hry',
+      p(`Jste přistěhovalec, který chce v Americe zbohatnout. Kupujete státy, jezdíte figurkou mezi dvěma bankami – <b>FED v New Yorku</b> a <b>BC (Bank of California) v Sacramentu</b> – a v bankách inkasujete výplaty za státy, které vlastníte. Ostatní hráči vám platí mýtné, když vašimi státy projíždějí.`),
+      p(`Vyhrává hráč, který jako poslední nezbankrotuje. Na začátku hry lze místo toho nastavit cíl: určitou hotovost nebo počet států. Hra vždy skončí, jakmile zůstane jediný hráč – ať ostatní zbankrotují, nebo je vyřadí Mafia.`));
+
+    sec('zacatek', 'Začátek hry',
+      ul(`Každý hráč začíná s <b>${fmt(E.CONF.startCash)}</b> na políčku banky FED v New Yorku (velká modrá hvězda).`,
+        `Hráči se střídají v pořadí podle úvodní obrazovky. Hrát může 2–7 hráčů, lidé i počítač (tři obtížnosti).`,
+        `Při <b>prvním</b> příjezdu do banky BC a při prvním návratu do banky FED dostane hráč bonus <b>${fmt(E.CONF.bonus)}</b>.`));
+
+    sec('tah', 'Průběh tahu',
+      p(`<b>1. Hod kostkami.</b> Standardně házíte dvěma kostkami zdarma. Za poplatek si můžete na celý tah zvolit 1 kostku (${fmt(E.DICE_FEE[1])}), 3 kostky (${fmt(E.DICE_FEE[3])}) nebo 4 kostky (${fmt(E.DICE_FEE[4])}). Jedna kostka se hodí, když chcete přesně zastavit na blízkém státu, více kostek, když spěcháte do banky.`),
+      p(`<b>2. Dvojice.</b> Hodíte-li dvěma kostkami dvě stejná čísla, po dokončení jízdy házíte znovu.`),
+      p(`<b>3. Přehození.</b> Během prvního okruhu FED → BC → FED smí každý hráč <b>jednou</b> svůj hod přehodit.`),
+      p(`<b>4. Jízda.</b> Figurka jede o tolik polí, kolik jste hodili. Každé políčko trasy (červeno-bílé, s hvězdou, s lodí nebo letadlem) je 1 krok. Na rozcestí aplikace zobrazí očíslované směry – klepněte na číslo na mapě nebo vyberte směr v panelu, kde vidíte i cenu jízdenky a mýtného.`),
+      p(`<b>5. Zastavení.</b> Kde figurka skončí, zaplatíte případné mýtné za zastavení. Stojíte-li ve státě, který nikdo nevlastní, můžete ho koupit.`),
+      ex('tah', `Hodíte 4 + 2 = 6. Figurka jede 6 polí, na rozcestí si vyberete cestu přes Pennsylvanii. Zastaví v Ohiu, které je volné – aplikace nabídne koupi za ${fmt(oh.price)}.`));
+
+    sec('trasa', 'Trasa a banky',
+      ul(`Jezdí se <b>z banky do banky</b>. Po příjezdu do banky (FED nebo BC) figurka vždy zastaví – zbytek hodu propadá – a začíná nová jízda.`,
+        `Během jedné jízdy se <b>nesmíte otočit ani projet stejný úsek dvakrát</b>. Do stejné banky se lze vrátit jen okruhem, ne stejnou cestou, kterou jste z ní odjeli. Po příjezdu do banky můžete jet zpět stejnou trasou.`,
+        `Aplikace nabízí jen směry, ze kterých se dá do banky dojet – do slepé uličky (třeba ke státu se značkou Independent) vás nepustí.`,
+        `Na placenou trasu nelze vjet bez peněz na jízdenku, pokud existuje jiná cesta.`),
+      p(`<b>Druhy tras:</b>`),
+      ul(`<b>Červené přerušované</b> – silnice zdarma.`,
+        `<b>Modré s hvězdami</b> – zkratky. Jízdenka se platí při vjezdu (např. zkratka přes stát New York ${shortNY ? fmt(shortNY.price) : ''}). Platí se bance, a pokud někdo vlastní Californii, jemu.`,
+        `<b>Kanadská dálnice</b> (Detroit – Buffalo) – placená stejně jako zkratky.`,
+        `<b>Letecké linky</b> (letadla) – např. New York – Seattle ${priceOf('air', 'Washington')}. Platí se bance, nebo majiteli karty Air Lines.`,
+        `<b>Lodní linky</b> – Houston – Tampa a Florida – New York. Platí se bance, nebo majiteli karty Sea Lines.`,
+        `Letadla a lodě neleží v žádném státě – nepočítá se tam mýtné a nedá se nic koupit.`),
+      ex('cesta letadlem', `Stojíte v New Yorku a vydáte se letadlem do Seattlu: zaplatíte jízdenku ${priceOf('air', 'Washington')} a za 5 kroků jste na druhé straně kontinentu. Majitel karty Air Lines letí zdarma.`));
+
+    sec('staty', 'Státy',
+      ul(`Stát koupíte, když <b>zastavíte</b> na kterémkoli políčku v něm a stát je volný. Stát New York nelze koupit z políčka banky FED, jen z ostatních políček ve státě. Washington D.C. je zdarma pro prvního, kdo na něj vstoupí.`,
+        `Každá karta státu má <b>cenu</b>, <b>výplatu ve FED</b> a <b>výplatu v BC</b>. Klepnutím na stát na mapě kartu kdykoli zobrazíte.`,
+        `Koupený stát je nejdřív <b>nelegalizovaný</b> (na mapě prázdná hvězda). Legalizujete ho průjezdem bankou FED – teprve pak za něj vybíráte mýtné. Výplaty v bankách dostáváte za všechny své státy.`,
+        `Dražší jsou státy u bank, státy s letištěm nebo přístavem a státy na krátkých okruzích kolem bank – vracíte se s nimi do banky častěji.`),
+      h('div', { class: 'mrow' }, stateCard('Ohio', 'card'), stateCard('Texas', 'card'), stateCard('New York', 'card')));
+
+    sec('myto', 'Mýtné',
+      ul(`Za <b>každé překročení hranice</b> cizího legalizovaného státu (vjezd i výjezd) platíte majiteli <b>1 000 $</b>.`,
+        `Za <b>každé zastavení</b> v takovém státě dalších <b>1 000 $</b>.`,
+        `Zastavení v bance se počítá jako zastavení ve státě: v bance FED platíte majiteli New Yorku, v bance BC majiteli Californie.`,
+        `Mýtné násobí Double Label (×2), Chief (×2) a Commander (×4) – násobky se sčítají násobením.`),
+      ex('průjezd', `Projedete Ohiem soupeře bez zastavení: vjezd 1 000 $ + výjezd 1 000 $ = <b>2 000 $</b>. Zastavíte-li v něm, je to <b>3 000 $</b>; zastavíte-li dvakrát (i v dalším tahu), <b>4 000 $</b>.`),
+      ex('násobení', `Soupeř má na Ohiu Double Label a k tomu kartu Chief: mýtné se násobí 2 × 2 = 4. Průjezd vás stojí 8 000 $, zastavení dalších 4 000 $.`),
+      ex('banka', `Přiletíte do New Yorku z Las Vegas a New York vlastní soupeř: vjezd 1 000 $ + zastavení v bance 1 000 $, a při odjezdu ještě výjezd 1 000 $ – celkem nejméně 3 000 $.`));
+
+    sec('banky', 'Výplaty v bankách',
+      ul(`<b>Banka FED (New York):</b> nejdřív se legalizují všechny vaše nové státy, pak dostanete součet výplat FED ze všech svých států (+ bonus za první příjezd).`,
+        `<b>Banka BC (Sacramento):</b> dostanete součet výplat BC ze svých států. Pokud Californii vlastní jiný hráč, vyplácí vám tento podíl on, ne banka.`,
+        `Mafie zapůjčená na jízdu se vrací při příjezdu do FED.`),
+      ex('výplata', `Vlastníte Ohio a Texas. Ve FED dostanete ${fmt(oh.fed)} + ${fmt(tx.fed)} = <b>${fmt(oh.fed + tx.fed)}</b>, v BC ${fmt(oh.bc)} + ${fmt(tx.bc)} = <b>${fmt(oh.bc + tx.bc)}</b>.`));
+
+    sec('california', 'Karta California',
+      cardBox('california', 'California', fmt(ca.price), `Koupíte ji zastavením na políčku v Californii. Majitel:<br>• jezdí po všech <b>zkratkách zdarma</b> a ostatní platí jízdenky za zkratky <b>jemu</b>;<br>• při každém příjezdu do banky FED dostane <b>${fmt(ca.fed)}</b>;<br>• v bance BC sám nic neinkasuje a ostatním hráčům <b>vyplácí jejich podíl</b> ze svých peněz;<br>• dostává mýtné za zastavení v bance BC.`),
+      ex('California', `Majitel Californie a celé Nové Anglie může jezdit okruhy kolem New Yorku po zkratkách zdarma a při každém návratu do FED inkasovat ${fmt(ca.fed)} plus výplaty svých států.`));
+
+    sec('karty', 'Speciální karty',
+      p(`Speciální karty kupujete kdykoli na začátku svého tahu v nabídce <b>Karty a značky</b> (Mafii jen na políčku banky FED). Ceny se dají snížit kartami Shareholder.`),
+      cardBox('sea-lines', C.sea.name, fmt(C.sea.price), `Lodní linky jezdíte zdarma a ostatní platí jízdenky za lodě vám.`),
+      cardBox('air-lines', C.air.name, fmt(C.air.price), `Letecké linky létáte zdarma a ostatní platí jízdenky za lety vám. Letadla zkracují cestu napříč kontinentem.`),
+      cardBox('chief', C.chief.name, `zápůjčka ${fmt(C.chief.deposit)} · koupě ${fmt(C.chief.price)}`, `<b>Zdvojnásobí</b> mýtné od ostatních a vaši výplatu v BC (ve FED ne). Lze si ji <b>zapůjčit</b> za vratnou jistinu – při vrácení ji dostanete zpět – nebo koupit. Kdo si ji zapůjčil, může ji později dokoupit za rozdíl.${shDep ? ' Jistina se snižuje o vaši slevu z karet Shareholder.' : ''} Jiný hráč vám zápůjčku může <b>přeplatit</b> vyšší jistinou${half ? ' – pak dostanete zpět jen <b>polovinu</b> své jistiny' : ''}.`),
+      cardBox('commander', C.commander.name, `zápůjčka ${fmt(C.commander.deposit)} · koupě ${fmt(C.commander.price)}`, `Jako Chief, ale mýtné a výplatu v BC <b>zčtyřnásobí</b>. S kartou Chief se násobky násobí (×8).${shDep ? ' Jistina se snižuje o slevu z karet Shareholder.' : ''}${half ? ' Při přeplacení se vrací jen polovina jistiny.' : ''}`),
+      cardBox('second-national-bank', C.snb.name, fmt(C.snb.price), `Postavíte třetí banku do svého státu (ne New York ani Californie). Když jí projede jiný hráč, vyplatíte mu 1 000 $ za každý jeho stát a jeho jízda tam začíná znovu (jako po bance). Vy dostáváte ve FED navíc <b>${fmt(C.snb.fed)}</b>.`),
+      cardBox('federal-highways', C.fedhw.name, fmt(C.fedhw.price), `Smíte projíždět státy se značkou Independent Label, kam ostatní nesmí.`),
+      cardBox('free-movement', C.freemove.name, fmt(C.freemove.price), `Smíte během jízdy <b>měnit směr</b> – hodí se hlavně k útěku před Mafií. Do banky se ale nesmíte vrátit stejnou cestou.`),
+      cardBox('mafia', C.mafia.name, fmt(C.mafia.price), `Zapůjčíte si ji jen na políčku banky FED, na jednu jízdu (do návratu do FED); peníze se nevrací. Kdo se s vaší figurkou na trase potká nebo projede stejným políčkem – kdokoli z vás jede – je <b>vyřazen ze hry</b>. Na políčkách bank se vyřazovat nedá.`),
+      cardBox('shareholder-10', 'Shareholder 10 % / 20 %', `${fmt(C.sh10.price)} / ${fmt(C.sh20a.price)}`, `Tři karty akcionáře (10 %, 20 %, 20 %). Majitel má na speciální karty <b>slevu</b> ve výši svého podílu (podíly se sčítají) a od banky dostává svůj <b>podíl z ceny</b> každé speciální karty, kterou koupí jiný hráč.${shDep ? ' Sleva platí i na jistinu za Chief a Commander.' : ''}`));
+
+    sec('znacky', 'Značky na státy',
+      p(`Značky kupujete v nabídce Karty a značky a umisťujete na své státy. Na každý stát patří nejvýš jedna značka; každého druhu jsou 4 kusy. Značky nelze dát na státy s bankou.`),
+      cardBox('double-label', L.double.name, fmt(L.double.price), `Zdvojnásobí mýtné za průjezd i zastavení v označeném státě.`),
+      cardBox('special-label', L.special.name, fmt(L.special.price), `Kdo ve státě zastaví, zaplatí navíc hodnotu svého hodu × 1 000 $ (při hodu 9 tedy 9 000 $ navíc).`),
+      cardBox('independent-label', L.independent.name, fmt(L.independent.price), `Ostatní hráči státem nesmějí projet – ani letadlem nebo lodí (kromě majitele Federal Highways). Značku nelze dát do státu sousedícího s bankou ani tak, aby některému hráči nezbyla cesta z banky do banky nebo okruh. Majiteli Californie musí vždy zůstat okruh kolem banky FED.`));
+
+    sec('obchod', 'Obchod, prodej a dluh',
+      ul(`<b>Obchod:</b> hráči mezi sebou mohou měnit státy (i se značkami), koupené karty a peníze za libovolnou dohodnutou cenu (nabídka Obchod). Vyměněný stát musí nový majitel znovu legalizovat ve FED. Zapůjčené karty obchodovat nelze.`,
+        `<b>Prodej bance:</b> v nabídce Majetek můžete kdykoli prodat stát nebo kartu bance za nákupní cenu; zapůjčenou kartu vrátíte za jistinu.`,
+        `<b>Dluh:</b> nemáte-li na platbu, zaplatíte, co máte, a zbytek dlužíte. Dluh splatíte prodejem majetku bance. Kdo nemůže zaplatit, zbankrotuje a jeho majetek se vrací bance.`));
+
+    sec('aplikace', 'Ovládání aplikace',
+      ul(`<b>Mapa:</b> posun prstem, přiblížení dvěma prsty nebo dvojitým klepnutím, tlačítka +/− a „celá mapa“. Tlačítko s terčem ukáže figurku hráče na tahu.`,
+        `<b>Karta státu:</b> klepněte kamkoli na území státu.`,
+        `<b>Horní lišta:</b> hráči a jejich hotovost; klepnutím zobrazíte jejich majetek. Okénko pod hráčem ukazuje jeho poslední hod.`,
+        `<b>Značky na mapě:</b> hvězda v barvě hráče = jeho stát (prázdná = nelegalizovaný), štítky 2× / ⚄ / ⛔ = Double, Special, Independent Label, SNB = druhá banka.`,
+        `<b>Na šířku</b> se panel přesune vpravo dolů a dá se sbalit tlačítkem –.`,
+        `Hra se průběžně ukládá v zařízení; v nabídce ☰ najdete záznam hry a novou hru.`));
+
+    // obsah nahoře
+    const toc = h('nav', { class: 'mtoc', 'aria-label': 'Obsah' }, secs.map(([id, t]) => h('button', { onclick: () => { const el = wrap.querySelector('#m-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, t)));
+    wrap.prepend(toc);
+    return wrap;
+  }
 
   // ============ úvodní obrazovka ============
   let setupPlayers = [{ name: 'Hráč 1', ai: false, color: 'red' }, { name: 'Počítač 1', ai: true, color: 'yellow' }, { name: 'Počítač 2', ai: true, color: 'green' }];
@@ -2472,7 +2578,7 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
     const draw = () => {
       card.innerHTML = '';
       if (BETA) card.append(h('div', { class: 'betabar' }, h('b', null, 'BETA'), h('span', null, 'Zkušební verze pro ladění cen. Hry a nastavení se ukládají odděleně od originálu.')));
-      card.append(h('h1', null, 'Immigrants to the United States of America'), h('p', { class: 'lead' }, 'Desková hra pro 2–7 hráčů na jednom zařízení. Kupujte státy, vybírejte mýtné a dojeďte do banky.'));
+      card.append(h('h1', { class: 'sr-only' }, 'Immigrants to the United States of America'), h('p', { class: 'lead' }, 'Desková hra pro 2–7 hráčů na jednom zařízení. Kupujte státy, vybírejte mýtné a dojeďte do banky.'));
       if (saved && saved.pending && saved.pending.type !== 'over') {
         card.append(h('button', { class: 'btn red big', onclick: () => startGame(saved) }, h('span', null, 'Pokračovat v rozehrané hře', h('small', null, `Kolo ${saved.turn} · ${saved.players.filter(p => p.alive).map(p => p.name).join(', ')}`))));
         card.append(h('div', { class: 'sec' }, 'nebo nová hra'));
@@ -2508,10 +2614,10 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
         startGame(ng);
       } }, 'Začít hru'));
       if (BETA) card.append(h('button', { class: 'btn ghost', onclick: openConf }, 'Upravit ceny a pravidla (beta)'));
-      card.append(h('button', { class: 'btn soft', onclick: openRules }, 'Pravidla'));
+      card.append(h('button', { class: 'btn soft', onclick: openRules }, 'Pravidla a manuál'));
     };
     draw();
-    S.append(h('div', { class: 'hero-wrap' }, h('div', { class: 'hero', role: 'img', 'aria-label': 'Výřez herní desky s názvem hry' })), card);
+    S.append(h('div', { class: 'hero-wrap' }, h('div', { class: 'hero' }, h('img', { src: 'title.webp', alt: 'Immigrants to the United States of America' }))), card);
   }
   function pickColor(p, done) {
     sheet(`Barva – ${p.name || 'hráč'}`, (b, close) => {
