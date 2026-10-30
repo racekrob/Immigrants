@@ -457,6 +457,10 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
       const c = D.chains[CHAIN_OF[a.v]];
       return c.ends.some(en => en !== u && !blockedFor(g, i, en, a.v));
     });
+    // nevjíždět do slepé uličky: po kroku musí existovat cesta do banky bez otáčení,
+    // bez už projetých úseků a bez státu se značkou Independent
+    const fin = opts.filter(a => canFinishTrip(g, i, u, a.v, a.e, used));
+    if (fin.length) opts = fin;
     if (!opts.length) opts = ADJ[u].filter(a => !blockedFor(g, i, a.v, u) && !(a.e === p.prevEdge && ADJ[u].length > 1));
     if (!opts.length) opts = ADJ[u].filter(a => !blockedFor(g, i, a.v, u));
     if (!opts.length) opts = ADJ[u].slice();
@@ -469,6 +473,30 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
     const afford = res.filter(o => o.fee <= p.cash);
     if (afford.length) res = afford;
     return res;
+  }
+
+  function isBankFor(g, i, v, u) {
+    if (v === FED || v === BC) return true;
+    if (g.snb) { const sv = nodeState(v); if (sv === g.snb && nodeState(u) !== sv) { const h = cardOwner(g, 'snb'); if (h >= 0 && h !== i && P(g, h).alive && g.states[sv].owner === h) return true; } }
+    return false;
+  }
+  // lze z oblouku u->v (hrana e) dojet do některé banky bez otočení a bez použitých úseků?
+  function canFinishTrip(g, i, u, v, e, used) {
+    if (isBankFor(g, i, v, u)) return true;
+    const seen = new Set([e + ':' + v]);
+    const q = [[v, e]];
+    while (q.length) {
+      const [n, inE] = q.shift();
+      for (const a of ADJ[n]) {
+        if (a.e === inE || used.has(a.e) || a.e === e) continue;
+        if (blockedFor(g, i, a.v, n)) continue;
+        if (isBankFor(g, i, a.v, n)) return true;
+        const k = a.e + ':' + a.v;
+        if (seen.has(k)) continue;
+        seen.add(k); q.push([a.v, a.e]);
+      }
+    }
+    return false;
   }
 
   function startTrip(p, bank) { p.trip = { from: bank, used: [] }; p.prevEdge = null; }
@@ -684,11 +712,34 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
       if (banks.some(b => (D.adj[b] || []).includes(s))) return 'Independent Label nelze dát do státu sousedícího s bankou.';
       // každý hráč musí mít stále cestu mezi bankami
       st.label = 'independent';
-      const ok = g.players.every(q => !q.alive || q.id === i || hasCard(g, q.id, 'fedhw') || connected(g, q.id));
+      const ok = g.players.every(q => !q.alive || q.id === i || hasCard(g, q.id, 'fedhw') ||
+        (caliOwner(g) === q.id ? loopAround(g, q.id, FED) : (connected(g, q.id) || loopAround(g, q.id, FED) || loopAround(g, q.id, BC))));
       st.label = null;
       if (!ok) return 'Značka by některému hráči znemožnila cestu do banky.';
     }
     return null;
+  }
+  // existuje okruh z banky zpět do téže banky (bez opakování úseků, bez zakázaných států)?
+  function loopAround(g, i, bank) {
+    const outs = ADJ[bank];
+    for (let x = 0; x < outs.length; x++) for (let y = 0; y < outs.length; y++) {
+      if (x === y) continue;
+      const a = outs[x], b = outs[y];
+      if (a.e === b.e || blockedFor(g, i, a.v, bank)) continue;
+      // cesta z a.v do b.v, která nevede přes žádnou banku ani hrany a/b
+      const seen = new Set([a.v]), q = [a.v];
+      let found = a.v === b.v;
+      while (q.length && !found) {
+        const n = q.shift();
+        for (const c of ADJ[n]) {
+          if (c.e === a.e || c.e === b.e || c.v === FED || c.v === BC || seen.has(c.v) || blockedFor(g, i, c.v, n)) continue;
+          if (c.v === b.v) { found = true; break; }
+          seen.add(c.v); q.push(c.v);
+        }
+      }
+      if (found) return true;
+    }
+    return false;
   }
   function connected(g, i) {
     const seen = new Set([FED]), q = [FED];
@@ -2287,7 +2338,8 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
 <li>Mafia vyřadí hráče, se kterým se figurky potkají nebo projedou stejným políčkem – kdokoli z nich jede. Na políčkách bank se vyřazovat nedá. Jakmile zůstane jediný hráč, hra okamžitě končí.</li>
 <li>Independent Label zakazuje vstup do státu i letadlem nebo lodí. Na leteckou či lodní linku, která vede jen do zakázaného státu, nelze nastoupit.</li>
 <li>Second National Bank: hráč, který vjede do jejího státu, inkasuje od majitele 1 000 $ za každý svůj stát a začíná tam novou jízdu (nezastavuje).</li>
-<li>Independent Label nelze umístit, pokud by kterémukoli hráči znemožnil cestu mezi FED a BC.</li>
+<li>Independent Label nelze umístit, pokud by některému hráči nezbyla žádná cesta z banky do banky ani okruh. Majiteli Californie musí vždy zůstat okruh kolem banky FED.</li>
+<li>Do slepé uličky nelze vjet: hra nabízí jen směry, ze kterých se dá dojet do banky bez otáčení a bez průjezdu státem s Independent Label.</li>
 <li>Nemá-li hráč na platbu, zaplatí, co má, a zbytek dluží. Dluh splatí prodejem majetku bance za nákupní cenu (zapůjčené karty vrátí za jistinu). Kdo nemůže, zbankrotuje a jeho majetek se vrací bance.</li>
 <li>Karta California: majitel v Sacramentu nic neinkasuje a ostatním vyplácí jejich podíl, ve FED dostává 30 000 $.</li>
 </ul>`;
