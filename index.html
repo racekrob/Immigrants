@@ -144,6 +144,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--f-ui); font-size: 16px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; font-weight: 600; text-align: right; }
+.btab { width: 100%; border-collapse: collapse; font-family: var(--f-ui); font-size: 16px; }
+.btab th { text-align: right; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid rgba(0,0,0,.12); }
+.btab th:first-child { text-align: left; }
+.btab td { padding: 6px; border-bottom: 1px solid rgba(0,0,0,.07); }
+.btab td.num { text-align: right; }
+.btab tr.cur td { background: rgba(255,200,0,.14); }
+.btab tr.dead td { opacity: .45; text-decoration: line-through; }
 
 .thinking { display: flex; align-items: center; gap: 10px; font-family: var(--f-ui); font-size: 17px; }
 .spinner { width: 22px; height: 22px; border: 3px solid var(--paper-3); border-top-color: var(--stamp); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -2075,7 +2082,11 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
       if (onTarget) return;
       const x = (e.clientX - r.left - view.tx) / view.s, y = (e.clientY - r.top - view.ty) / view.s;
       clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => { const s = stateAt(x, y); if (s && G) stateInfo(s); }, 310);
+      tapTimer = setTimeout(() => {
+        const bn = [E.FED, E.BC].find(n => Math.hypot(D.nodes[n].x - x, D.nodes[n].y - y) < 55);   // klepnutí na banku → tabulka výnosů
+        if (bn != null && G) { bankTable(bn); return; }
+        const s = stateAt(x, y); if (s && G) stateInfo(s);
+      }, 310);
     });
     window.addEventListener('resize', () => { const k = view.s / view.min; fitView(); if (k > 1.01) zoomAt(k, wrap.clientWidth / 2, wrap.clientHeight / 2); });
   }
@@ -2492,6 +2503,32 @@ if(typeof module!=="undefined")module.exports=(typeof window!=="undefined"?windo
         b.append(bl, h('button', { class: 'btn', onclick: close }, 'Pokračovat'));
       }, res);
       if (fast) setTimeout(s.close, 1200);
+    });
+  }
+  // tabulka: kolik by teď v bance FED / BC inkasoval každý hráč (stejný výpočet jako při příjezdu)
+  function bankTable(bank) {
+    const fed = bank === E.FED;
+    sheet(fed ? 'Banka FED – New York' : 'Banka BC – Sacramento', b => {
+      b.append(h('p', { class: 'note', style: 'margin:0 0 8px' }, fed
+        ? 'V bance FED se vyplácí podle sloupce FED na kartách států. Takto by zde teď inkasoval každý hráč:'
+        : 'V bance BC se vyplácí podle sloupce BC na kartách států; výplatu platí majitel Californie. Takto by zde teď inkasoval každý hráč:'));
+      const tb = h('table', { class: 'btab' });
+      tb.append(h('tr', null, h('th', null, ''), h('th', null, 'Států'), h('th', null, 'Výplata')));
+      let star = false;
+      G.players.forEach(p => {
+        let e = null;
+        try { const gc = JSON.parse(JSON.stringify(G)), out = []; E._arriveBank(gc, out, p.id, bank); e = out.find(x => x.t === 'bank'); } catch (err) { e = null; }
+        const bonus = e && e.items.some(x => /^Bonus/.test(x.label)); if (bonus) star = true;
+        tb.append(h('tr', { class: (p.id === G.cur ? 'cur' : '') + (p.alive ? '' : ' dead') },
+          h('td', null, h('span', { html: starSVG(p.color, 18), style: 'display:inline-block;vertical-align:-4px;margin-right:6px' }), p.name),
+          h('td', { class: 'num' }, String(E.ownedStates(G, p.id).length)),
+          h('td', { class: 'num', style: 'font-weight:700' }, (e ? fmt(e.total) : '–') + (bonus ? ' *' : ''))));
+      });
+      b.append(tb);
+      const notes = [];
+      if (star) notes.push(`* včetně bonusu ${fmt(E.CONF.bonus)} za první příjezd do této banky`);
+      if (!fed) notes.push('Kdo vlastní Californii, v Sacramentu nic neinkasuje. Karty Chief a Commander výplatu násobí.');
+      if (notes.length) b.append(h('p', { class: 'note', style: 'margin-top:8px' }, notes.join(' ')));
     });
   }
   function stateInfo(s) {
